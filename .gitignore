@@ -4,6 +4,7 @@ config.el
 
 # Private and local configuration
 private.el
+/old
 
 # Emacs backup and autosave files
 *~
