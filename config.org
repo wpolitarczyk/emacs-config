@@ -2628,43 +2628,122 @@ A transient menu bound to ~C-c ! h~ that facilitates rapid diagnostic navigation
     (define-key flycheck-command-map (kbd "h") #'hydra-flycheck/body))
 #+end_src
 * Flyspell
-** Core Configuration
-#+begin_src emacs-lisp :tangle yes
+
+An on-the-fly interactive spell checking environment for prose, academic writing, and programming comments. Flyspell highlights misspelled words in real time and provides rapid in-minibuffer correction interfaces without taking your hands off the keyboard.
+
+** Core Configuration & Bilingual Hunspell Setup
+
+We configure GNU Emacs' built-in ~flyspell~ with [[https://hunspell.github.io/][Hunspell]] as the spell checking engine (installable via Homebrew: ~brew install hunspell~).
+
+Key settings:
+- Mode Isolation:
+  - ~text-mode-hook~ runs ~flyspell-mode~ (checks every word across Markdown, Org notes, and LaTeX).
+  - ~prog-mode-hook~ runs ~flyspell-prog-mode~ (strictly checks comments and docstrings, leaving code identifiers and keywords intact).
+- Bilingual Dictionary Switching:
+  - Default dictionary set to English (~en_US~).
+  - ~ispell-local-dictionary-alist~ defines character boundary rules, UTF-8 encoding, and dictionary flag arguments (~-d~) for both American English (~en_US~) and Polish (~pl_PL~).
+- Keybindings:
+  - ~C-c f b~: Spellcheck entire buffer (~flyspell-buffer~).
+  - ~C-c f d~ / ~C-c f j c~: Select and switch active dictionary (~ispell-change-dictionary~).
+
+#+begin_src emacs-lisp
   (use-package flyspell
     :ensure nil
     :hook ((text-mode . flyspell-mode)
            (prog-mode . flyspell-prog-mode))
     :config
+    ;; Use Hunspell as the primary spelling engine
     (setq ispell-program-name "hunspell")
-    
-    ;; Set the default dictionary to Polish
+
+    ;; Default active dictionary
     (setq ispell-dictionary "en_US")
 
-    ;; Define how hunspell handles Polish and English
+    ;; Dictionary definitions for English and Polish with UTF-8 support
     (setq ispell-local-dictionary-alist
           '(("pl_PL" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "pl_PL") nil utf-8)
             ("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "en_US") nil utf-8)))
 
     :bind (:map flyspell-mode-map
                 ("C-c f b" . flyspell-buffer)
+                ("C-c f d" . ispell-change-dictionary)
                 ("C-c f j c" . ispell-change-dictionary)))
 #+end_src
 
-** Flyspell Performance and Correction
-#+begin_src emacs-lisp :tangle yes
+** Performance Optimization (flyspell-lazy)
+
+By default, Flyspell executes spell-checking synchronously on every character insertion. In large LaTeX files or dense Org documents, this can introduce noticeable typing delay.
+
+~flyspell-lazy~ solves this by deferring spellcheck operations until Emacs is idle for a brief window, ensuring silky-smooth responsiveness during rapid typing.
+
+- *Repository*: [[https://github.com/rolandwalker/flyspell-lazy][rolandwalker/flyspell-lazy on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/flyspell-lazy.html][flyspell-lazy on MELPA]]
+
+#+begin_src emacs-lisp
   ;; Improves responsiveness by deferring spellcheck during heavy typing
   (use-package flyspell-lazy
+    :after flyspell
     :config
     (flyspell-lazy-mode 1))
+#+end_src
 
-  ;; Fast correction using Helm interface
+** Modern Minibuffer Spelling Correction (flyspell-correct)
+
+~flyspell-correct~ jumps to the nearest misspelled word and presents spelling suggestions. Configured with ~flyspell-correct-completing-read~, it delegates suggestion selection directly to Emacs' standard ~completing-read~ API, seamlessly leveraging **Vertico** and **Orderless** for fuzzy-filtered correction.
+
+Bound to ~C-M-;~ and ~C-c f c~.
+
+- *Repository*: [[https://github.com/d12frosted/flyspell-correct][d12frosted/flyspell-correct on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/flyspell-correct.html][flyspell-correct on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package flyspell-correct
     :after flyspell
-    :bind (:map flyspell-mode-map 
-                ("C-M-;" . flyspell-correct-wrapper)))
+    :bind (:map flyspell-mode-map
+                ("C-M-;" . flyspell-correct-wrapper)
+                ("C-c f c" . flyspell-correct-wrapper))
+    :config
+    ;; Leverage standard completing-read (Vertico + Orderless)
+    (setq flyspell-correct-interface #'flyspell-correct-completing-read))
+#+end_src
 
+*** Archived Helm Correction Interface
+:PROPERTIES:
+:header-args: :tangle no
+:END:
+
+Previously, ~flyspell-correct-helm~ was used to display correction popups in Helm. With our transition to Vertico and native ~completing-read~, this package is deprecated and no longer tangled.
+
+#+begin_src emacs-lisp
+  ;; Fast correction using Helm interface (Archived)
   (use-package flyspell-correct-helm
     :after flyspell-correct)
+#+end_src
+
+** Bilingual Flyspell Hydra
+
+A rapid-access transient menu bound to ~C-c f h~ for jumping across misspelled words, invoking correction, and switching between Polish and English dictionaries with a single keypress.
+
+#+begin_src emacs-lisp
+  (defhydra hydra-flyspell (:color red :hint nil)
+    "
+  Flyspell
+  ^Navigation & Fix^     ^Dictionary^              ^Actions^
+  ^^^^^^^^------------------------------------------------------------------
+  _n_: Next Misspelling  _e_: English (en_US)      _b_: Check Buffer
+  _c_: Correct Word      _p_: Polish (pl_PL)       _q_: Quit
+  ^ ^                    _d_: Select Dictionary
+  "
+    ("n" flyspell-goto-next-error)
+    ("c" flyspell-correct-wrapper)
+    ("e" (progn (ispell-change-dictionary "en_US") (message "Switched to English (en_US).")))
+    ("p" (progn (ispell-change-dictionary "pl_PL") (message "Switched to Polish (pl_PL).")))
+    ("d" ispell-change-dictionary)
+    ("b" flyspell-buffer)
+    ("q" nil "Quit" :color blue))
+
+  ;; Bind Hydra in flyspell-mode-map
+  (with-eval-after-load 'flyspell
+    (define-key flyspell-mode-map (kbd "C-c f h") #'hydra-flyspell/body))
 #+end_src
 
 * Email (mu4e)
