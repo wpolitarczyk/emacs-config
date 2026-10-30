@@ -2091,6 +2091,25 @@ Key configurations:
     (setq citar-at-point-function 'citar-capf))
 #+end_src
 
+*** Citar-Embark (Contextual Citation Actions)
+
+~citar-embark~ bridges ~citar~ and ~embark~. When your point is on any citation key in a LaTeX (~\\cite{key}~) or Org-mode buffer, or when browsing references in the Vertico minibuffer:
+- Press ~C-.~ (~embark-act~) to invoke contextual actions:
+  - ~o~ / ~f~: Open associated PDF in PDF-Tools (~citar-open~ / ~citar-open-files~).
+  - ~n~: Jump directly to notes in ~org-noter~ (~citar-open-notes~).
+  - ~l~: Open paper URL / DOI in default browser (~citar-open-links~).
+  - ~b~: Copy or insert the formatted BibTeX record (~citar-insert-bibtex~).
+
+- *Repository*: [[https://github.com/emacs-citar/citar][emacs-citar/citar on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/citar-embark.html][citar-embark on MELPA]]
+
+#+begin_src emacs-lisp
+  (use-package citar-embark
+    :after (citar embark)
+    :config
+    (citar-embark-mode 1))
+#+end_src
+
 *** Biblio: Online Literature Lookup
 
 ~biblio.el~ allows browsing and querying online academic repositories—including Crossref, arXiv, DBLP, HAL, and IEEE Xplore—directly from Emacs. Search results can be fetched, inspected, and appended as clean BibTeX records straight into your active bibliography.
