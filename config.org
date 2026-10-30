@@ -2370,7 +2370,8 @@ Org mode turns plain text files into an intuitive, hierarchical information mana
           org-clock-into-drawer "LOGBOOK"
           org-log-done 'time
           org-startup-folded 'fold
-          org-catch-invisible-edits 'smart)
+          org-catch-invisible-edits 'smart
+          org-hide-emphasis-markers t)
 
     ;; Academic/Math focus: highlight LaTeX math, scripts, and entities
     (setq org-highlight-latex-and-related '("latex" "script" "entities"))
@@ -2410,6 +2411,26 @@ Org mode turns plain text files into an intuitive, hierarchical information mana
     :hook (org-mode . org-superstar-mode)
     :config
     (setq org-superstar-remove-leading-stars t))
+#+end_src
+
+*** Dynamic Markup & Entity Preview (org-appear)
+
+In standard Org mode, hiding markup delimiters (~org-hide-emphasis-markers t~) makes documents look polished and typographically clean, but editing hidden syntax can be cumbersome.
+
+~org-appear~ seamlessly toggles visibility: emphasis markers (~*bold*~, ~/italic/~, =~code~=), links (~[[url][title]]~), subscript/superscripts (~x_2~, ~y^3~), and LaTeX entities (~\alpha~) are invisible while reading, but instantly reveal their raw plain-text delimiters as soon as your cursor enters the element, hiding them again the moment you move away.
+
+- *Repository*: [[https://github.com/awth-s/org-appear][awth-s/org-appear on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/org-appear.html][org-appear on MELPA]]
+
+#+begin_src emacs-lisp
+  (use-package org-appear
+    :after org
+    :hook (org-mode . org-appear-mode)
+    :config
+    (setq org-appear-autoemphasis t
+          org-appear-autolinks t
+          org-appear-autosubmarkers t
+          org-appear-autoentities t))
 #+end_src
 
 *** Sticky Headlines (org-sticky-header)
