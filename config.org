@@ -2315,6 +2315,36 @@ Because its automated pair expansions can occasionally overlap with ~smartparens
     :bind ("C-c R p" . academic-phrases-by-section)) ; p for Phrases
 #+end_src
 
+*** LaTeX Auto-Activating Snippets (laas)
+
+~laas~ (LaTeX Auto Activating Snippets) leverages ~yasnippet~ and ~aas~ to automatically expand mathematical shorthand and fractions without requiring a ~TAB~ press, active strictly while inside LaTeX math environments (~$...$~, ~\[...\]~).
+
+Key capabilities:
+- ~//~ automatically expands into ~\frac{...}{...}~ with active tab stops.
+- Mathematical functions (~supp~ -> ~\supp~, ~On~ -> ~O(n)~, ~dint~ -> ~\int_{...}^{...}~).
+- Requires ~math-symbol-lists~ for symbol definitions.
+
+- *Repository*: [[https://github.com/tecosaur/LaTeX-auto-activating-snippets][tecosaur/LaTeX-auto-activating-snippets on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/laas.html][laas on MELPA]]
+
+#+begin_src emacs-lisp
+  (use-package math-symbol-lists)
+
+  (use-package laas
+    :after (yasnippet)
+    :hook (LaTeX-mode . laas-mode)
+    :config
+    ;; Automatically expand snippets strictly inside math mode
+    (aas-set-snippets 'laas-mode
+      :cond #'texmathp
+      "supp" "\\supp"
+      "On" "O(n)"
+      "O1" "O(1)"
+      "Olog" "O(\\log n)"
+      "Olon" "O(n \\log n)"
+      "//" (lambda () (interactive) (yas-expand-snippet "\\frac{$1}{$2}$0"))))
+#+end_src
+
 * Org-mode
 :PROPERTIES:
 :header-args: :tangle yes
