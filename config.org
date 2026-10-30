@@ -15,6 +15,8 @@ Emacs includes ~package.el~ as its standard package management client. By defaul
 - *Repository*: [[https://github.com/melpa/melpa][melpa/melpa on GitHub]]
 
 #+begin_src emacs-lisp
+  ;;; config.el --- Emacs configuration -*- lexical-binding: t -*-
+
   (require 'package)
 
   ;; Repository configuration - adding MELPA
