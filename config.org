@@ -139,6 +139,7 @@ Quick helper functions to reload or open the configuration without having to man
 
 - ~reload-init~: Re-tangles ~config.org~ into ~config.el~ and evaluates the new configuration immediately.
 - ~show-init-file~: Opens ~config.org~ directly in a buffer for fast editing.
+- ~my/show-keybindings-reference~: Opens the ~keybindings.org~ reference guide in read-only mode (bound to ~C-c ?~).
 
 #+begin_src emacs-lisp
   (defun reload-init ()
@@ -160,6 +161,16 @@ Quick helper functions to reload or open the configuration without having to man
     "Open the configuration file for editing."
     (interactive)
     (find-file (expand-file-name "config.org" user-emacs-directory)))
+
+  (defun my/show-keybindings-reference ()
+    "Open the keybindings reference guide (keybindings.org) in read-only mode."
+    (interactive)
+    (let ((file (expand-file-name "keybindings.org" user-emacs-directory)))
+      (if (file-exists-p file)
+          (find-file-read-only file)
+        (message "Keybindings reference file not found at %s" file))))
+
+  (global-set-key (kbd "C-c ?") #'my/show-keybindings-reference)
 #+end_src
 
 *** Window Scrolling Behavior
@@ -691,7 +702,9 @@ Emacs 26+ provides a high-performance C-level line numbering engine (~display-li
         (,(nerd-icons-faicon "nf-fa-refresh" :height 1.1 :v-adjust 0.0)
          "Reload" "Reload configuration" (lambda (&rest _) (reload-init)))
         (,(nerd-icons-faicon "nf-fa-keyboard_o" :height 1.1 :v-adjust 0.0)
-         "Hydras" "List defined Hydras" (lambda (&rest _) (my/list-config-hydras))))))
+         "Hydras" "List defined Hydras" (lambda (&rest _) (my/list-config-hydras)))
+        (,(nerd-icons-faicon "nf-fa-book" :height 1.1 :v-adjust 0.0)
+         "Keys" "Open keybindings reference" (lambda (&rest _) (my/show-keybindings-reference))))))
     :config
     (dashboard-setup-startup-hook)
     (setq initial-buffer-choice (lambda () (get-buffer-create "*dashboard*"))))

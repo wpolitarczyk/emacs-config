@@ -1,0 +1,173 @@
+#+TITLE: Emacs Keybinding Reference Guide
+#+AUTHOR: Wojtek Politarczyk
+#+OPTIONS: toc:2 num:nil
+#+STARTUP: show2levels
+
+Welcome to your personalized Emacs keybinding reference guide. This document groups all active shortcuts, prefixes, and Hydras by *task and intent* so you can quickly find the command you need.
+
+* Quick Discovery Tools (When You Forget a Key)
+
+Emacs has built-in discovery engines to help you find commands interactively without memorization:
+
+| Discovery Method | Shortcut | Action |
+|------------------+----------+-------------------------------------------------------------|
+| *Which-Key*      | Any prefix | Press any prefix (e.g. ~C-c~, ~C-x~, ~s-l~) and pause 0.5s for a popup |
+| *Embark Bindings*| ~C-h B~    | Searchable Vertico list of *all* active keys in the buffer  |
+| *Helpful Key*    | ~C-h k~    | Press ~C-h k~ then any key to inspect its command & docs    |
+| *Reference Guide*| ~C-c ?~    | Re-open this reference guide at any time                    |
+
+* Navigation & Cursor Movement
+
+Rapid buffer movement without repeated arrow keys.
+
+| Shortcut | Command | Scope | Description |
+|----------+---------+-------+-------------|
+| ~M-j~    | ~avy-goto-char-timer~ | Global | *Jump* to any visible character/word across windows via overlay |
+| ~C-a~    | ~crux-move-beginning-of-line~ | Global | Toggle cursor between indentation column and column 0 |
+| ~M-<up>~ | ~drag-stuff-up~ | Global | Drag current line or highlighted selection upward |
+| ~M-<down>~ | ~drag-stuff-down~ | Global | Drag current line or highlighted selection downward |
+| ~M-g i~  | ~consult-imenu~ | Global | Jump to definitions, functions, or section headings in buffer |
+
+* Minibuffer, Search & Outline
+
+Practical search and navigation powered by Vertico, Consult, Orderless, and Embark.
+
+| Shortcut | Command | Scope | Description |
+|----------+---------+-------+-------------|
+| ~C-s~    | ~consult-line~ | Global | Interactive buffer search with real-time cursor preview |
+| ~C-x b~  | ~consult-buffer~ | Global | Switch open buffers, recent files (~recentf~), and bookmarks |
+| ~C-c r~  | ~consult-ripgrep~ | Global | Asynchronous project-wide search with live Ripgrep preview |
+| ~C-c j~  | ~consult-outline~ | Global | Jump to headings across Org, Markdown, and LaTeX files |
+| ~M-y~    | ~consult-yank-pop~ | Global | Searchable clipboard / kill-ring history with preview |
+| ~C-.~    | ~embark-act~ | Global | Context menu for symbol, file, or completion candidate at point |
+| ~M-.~    | ~embark-dwim~ | Global | Jump to definition or execute default context-aware action |
+| ~C-h B~  | ~embark-bindings~ | Global | Live fuzzy search of all keybindings currently active |
+
+* Windows, Workspaces & Tabs
+
+Window management, layout undo/redo, and buffer text scaling.
+
+| Shortcut | Command | Scope | Description |
+|----------+---------+-------+-------------|
+| ~C-c w~  | ~hydra-window/body~ | Global | *Window Manager*: Split (~v~/~x~), move (~h~/~j~/~k~/~l~), delete (~d~/~o~), buffer (~b~), file (~f~) |
+| ~C-x t h~ | ~hydra-tab-bar/body~ | Global | *Tab Manager*: New (~t~), close (~0~), switch (~l~/~j~), history undo/redo (~[~/~]~) |
+| ~Cmd+[~  | ~tab-bar-history-back~ | GUI | Undo window split/resize changes (macOS browser-style Back) |
+| ~Cmd+]~  | ~tab-bar-history-forward~ | GUI | Redo window split/resize changes (macOS browser-style Forward) |
+| ~C-+~    | ~text-scale-increase~ | Global | Zoom buffer text size in |
+| ~C--~    | ~text-scale-decrease~ | Global | Zoom buffer text size out (use ~M--~ or ~C-u -~ for negative prefix arg) |
+| ~C-0~    | ~text-scale-adjust 0~ | Global | Reset buffer text size to default |
+
+* Editing & Undo Management
+
+Visual undo tree navigation and structural editing.
+
+| Shortcut | Command | Scope | Description |
+|----------+---------+-------+-------------|
+| ~C-x u~  | ~vundo~ | Global | Visual tree browser for buffer undo/redo history |
+| ~C-/~    | ~undo-only~ | Global | Linear undo (never cycles into redos unexpectedly) |
+| ~C-?~    | ~undo-redo~ | Global | Redo previously undone changes |
+| ~C-c n~  | ~crux-cleanup-buffer-or-region~ | Global | Reindent buffer or region and trim trailing whitespace |
+| ~C-c D~  | ~crux-duplicate-current-line-or-region~ | Global | Duplicate active line or selection downward |
+| ~C-c s~  | ~hydra-smartparens/body~ | Global | Structural sexp editing (slurp, barf, wrap, transpose) |
+| ~<f10>~  | ~writeroom-mode~ | Global | Toggle distraction-free centered writing mode |
+
+* Git & Version Control
+
+Comprehensive Git integration powered by Magit, Git Gutter, and Git Timemachine.
+
+| Shortcut | Command | Scope | Description |
+|----------+---------+-------+-------------|
+| ~C-c m s~ | ~magit-status~ | Global | Open Magit status dashboard (stage, commit, push, pull) |
+| ~C-c m l~ | ~magit-log~ | Global | View Git commit history log for current branch |
+| ~C-c m L~ | ~magit-log-all-branches~ | Global | View Git log across all local and remote branches |
+| ~C-c m b~ | ~magit-branch~ | Global | Create, checkout, rename, or delete Git branches |
+| ~C-c m i~ | ~magit-init~ | Global | Initialize a new Git repository |
+| ~C-c m c~ | ~magit-clone~ | Global | Clone a remote Git repository |
+| ~C-c m t~ | ~git-timemachine~ | Global | Interactive step-by-step revision time travel for current file |
+| ~C-c m G~ | ~git-link~ | Global | Copy permanent GitHub/GitLab URL for current file and line |
+| ~C-x v =~ | ~git-gutter:popup-hunk~ | Global | Popup diff preview for change hunk under cursor |
+| ~C-x v p~ | ~git-gutter:previous-hunk~ | Global | Jump to previous diff hunk |
+| ~C-x v n~ | ~git-gutter:next-hunk~ | Global | Jump to next diff hunk |
+| ~C-x v s~ | ~git-gutter:stage-hunk~ | Global | Stage only the diff hunk at point into Git index |
+| ~C-x v r~ | ~git-gutter:revert-hunk~ | Global | Discard/revert diff hunk at point back to Git HEAD |
+| ~C-x v h~ | ~hydra-git-gutter/body~ | Global | Transient controller for rapid hunk inspection |
+
+* Org Mode & GTD Task Management
+
+Task capture, agenda scheduling, time tracking, and link generation.
+
+| Shortcut | Command | Scope | Description |
+|----------+---------+-------+-------------|
+| ~C-c a~  | ~org-agenda~ | Global | Master Org Agenda dispatcher (daily/weekly, TODOs) |
+| ~C-c c~  | ~org-capture~ | Global | Quick capture template popup (tasks, notes, ideas) |
+| ~C-c l~  | ~org-store-link~ | Global | Store link to current headline, code line, or document |
+| ~C-c C-x i~ | ~org-mru-clock-in~ | Global | Clock in to most recently used task across agenda files |
+| ~C-c C-x j~ | ~org-mru-clock-select-recent-task~ | Global | Interactive MRU task switcher with completing-read |
+| ~C-c C-x C-j~ | ~org-clock-goto~ | Org Mode | Jump directly to currently running clock in its Org file |
+| ~C-c C-y~ | ~org-evaluate-time-range~ | Org Mode | Compute elapsed duration between two timestamps (~[10:00]--[11:30]~) |
+| ~<f6>~   | ~my/copy-idlink-to-clipboard~ | Global | Generate & copy permanent UUID ~[[id:...][Title]]~ link to headline |
+| ~<f7>~   | ~org-cliplink~ | Global | Paste clipboard web URL formatted with fetched ~[[url][Page Title]]~ |
+| ~C-c A~  | ~cfw:open-org-calendar~ | Global | Open full calendar grid view synchronized with Org agenda |
+
+* LaTeX & Academic Research
+
+AUCTeX authoring, citation management, bibliography search, and preprints.
+
+| Shortcut | Command | Scope | Description |
+|----------+---------+-------+-------------|
+| ~C-c C-c~ | ~TeX-command-master~ | LaTeX Mode | Compile document / view generated PDF (master command) |
+| ~C-c C-r~ | ~TeX-command-region~ | LaTeX Mode | Compile only currently selected region to preview changes |
+| ~C-c L~  | ~hydra-latex-tools/body~ | LaTeX Mode | *LaTeX Hub*: RefTeX parse (~p~), Citations (~i~/~c~), Diff (~d~), Labels (~l~) |
+| ~C-c b~  | ~citar-insert-citation~ | Global | Search bibliography and insert citation with rich candidate preview |
+| ~C-c [~  | ~reftex-citation~ | LaTeX Mode | Native RefTeX citation prompt |
+| ~C-c R a~ | ~arxiv-search~ | Global | Search arXiv scientific preprints and download papers |
+| ~C-c R p~ | ~academic-phrases-by-section~ | Global | Browse academic phrase bank organized by manuscript section |
+| ~s-i~    | ~LaTeX-make-inline~ | LaTeX Mode | Convert display math environment (~\[...\]~) to inline math (Right-Cmd + i) |
+| ~s-m~    | ~LaTeX-modify-math~ | LaTeX Mode | Change active math environment or delimiter style (Right-Cmd + m) |
+
+* Coding & AI Intelligence
+
+Language Server Protocol, AI coding assistant, compilation, and terminal.
+
+| Shortcut | Command | Scope | Description |
+|----------+---------+-------+-------------|
+| ~C-c C-a~ | ~ai-code-map~ | Global | *AI Coding Assistant*: Gemini CLI code generation, refactor, review |
+| ~s-l~    | ~lsp-command-map~ | LSP Buffers | *LSP Hub*: Rename (~r~), code actions (~a~), format (~f~), peek (~g~) |
+| ~M-.~    | ~xref-find-definitions~ | Prog Mode | Jump to definition (via LSP, or Dumb-jump heuristic fallback) |
+| ~M-,~    | ~xref-go-back~ | Prog Mode | Return to previous cursor position before jumping to definition |
+| ~<f5>~   | ~compile~ | Global | Run project build command (defaults to ~make -k~) |
+| ~C-t~    | ~vterm-toggle~ | Global | Drop-down / toggle terminal buffer (~vterm~) |
+
+* Snippets & Bilingual Spellcheck
+
+YASnippet template expansions and Hunspell bilingual spelling (English & Polish).
+
+| Shortcut | Command | Scope | Description |
+|----------+---------+-------+-------------|
+| ~TAB~ / ~<tab>~ | ~company-complete-selection~ | Prog Mode | Accept active autocompletion candidate in Company |
+| ~C-c y~  | ~consult-yasnippet~ | Global | Search and expand snippets via Vertico/Consult with live preview |
+| ~C-c Y~  | ~hydra-yas/body~ | Yasnippet | *Snippet Hub*: Insert (~i~), new (~n~), visit file (~v~), reload (~R~) |
+| ~C-c f d~ | ~ispell-change-dictionary~ | Flyspell | Switch active dictionary between English (~en_US~) and Polish (~pl_PL~) |
+| ~C-c f b~ | ~flyspell-buffer~ | Flyspell | Run spellcheck across entire buffer |
+| ~C-c f c~ | ~flyspell-correct-wrapper~ | Flyspell | Jump to nearest misspelling with fuzzy minibuffer suggestions |
+| ~C-M-;~  | ~flyspell-correct-wrapper~ | Flyspell | Alternative single-chord shortcut for spelling correction |
+| ~C-c f h~ | ~hydra-flyspell/body~ | Flyspell | *Spelling Hub*: Next error (~n~), correct (~c~), switch dict (~e~/~p~) |
+| ~C-c ! h~ | ~hydra-flycheck/body~ | Flycheck | *Syntax Hub*: Next error (~n~), previous (~p~), explain (~e~), list (~l~) |
+
+* Master Hydra Index
+
+Hydras group related multi-step commands into interactive transient menus. Once invoked, you can tap single letters without repeating prefix chords.
+
+| Shortcut | Hydra Name | Purpose & Key Heads |
+|----------+------------+-------------------------------------------------------------|
+| ~C-c w~  | ~hydra-window~ | Window navigation (~h~/~j~/~k~/~l~), splits (~v~/~x~), delete (~d~/~o~), buffers (~b~), files (~f~) |
+| ~C-x t h~ | ~hydra-tab-bar~ | Native tabs: new (~t~), close (~0~), switch (~l~/~j~), layout history (~[~/~]~) |
+| ~C-c L~  | ~hydra-latex-tools~ | LaTeX: parse (~p~), reset (~r~), citations (~i~/~c~), outline (~o~), git-diff (~d~) |
+| ~C-c Y~  | ~hydra-yas~ | Snippets: expand (~e~), insert (~i~), new (~n~), visit (~v~), reload (~R~) |
+| ~C-c f h~ | ~hydra-flyspell~ | Spellcheck: next (~n~), correct (~c~), English (~e~), Polish (~p~), buffer (~b~) |
+| ~C-c ! h~ | ~hydra-flycheck~ | Syntax errors: next (~n~), previous (~p~), explain (~e~), list all (~l~) |
+| ~C-x v h~ | ~hydra-git-gutter~ | Git diffs: next (~j~), previous (~k~), stage (~s~), revert (~r~), popup (~p~) |
+| ~C-c s~  | ~hydra-smartparens~ | Sexps: forward/back (~f~/~b~), barf (~h~/~l~), slurp (~H~/~L~), wrap (~w~), kill (~k~) |
+| ~C-c d~  | ~hydra-describe~ | Help: bindings (~b~), function (~f~), variable (~v~), mode (~m~), key (~k~) |
+| ~C-c H~  | ~hydra-apropos~ | Deep query: commands (~c~), variables (~v~), documentation (~d~), library (~l~) |
+| ~<f3>~   | ~hydra-macro~ | Keyboard macros: record (~j~), end (~l~), call (~e~), counter (~n~), ring (~i~/~k~) |
