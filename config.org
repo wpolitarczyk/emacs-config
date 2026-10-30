@@ -1091,6 +1091,7 @@ Extensions from the popular **[[https://github.com/Fuco1/dired-hacks][dired-hack
         ("Dirs"          (directory))
         ("PDF and DJVU"  (extension "pdf" "djvu" "djv"))
         ("LaTeX"         (extension "tex" "bib" "sty"))
+        ("Lean"          (extension "lean"))
         ("Asymptote"     (extension "asy"))
         ("Documents"     (extension "ods" "odf" "xls" "xlsx" "doc" "docx"))
         ("Org"           (extension "org"))
@@ -1106,46 +1107,85 @@ Extensions from the popular **[[https://github.com/Fuco1/dired-hacks][dired-hack
 #+end_src
 
 * Terminal Emulators
-Configuration for both Emacs' built-in shell and the high-performance vterm emulator.
+:PROPERTIES:
+:header-args: :tangle yes
+:END:
 
-** Eshell
-Built-in shell for quick, Emacs-native tasks.
-#+begin_src emacs-lisp :tangle yes
+Emacs provides multiple ways to interact with command-line tools. This section configures two complementary terminal solutions:
+
+1. **Eshell**: A portable, pure-Elisp command shell deeply integrated with Emacs Lisp and remote TRAMP buffers.
+2. **Vterm**: A lightning-fast, full-featured terminal emulator based on the native C library ~libvterm~, capable of running complex terminal applications (~htop~, ~lazygit~, ~tmux~, interactive REPLs) at native speeds.
+3. **Vterm Toggle**: A Quake-style drop-down terminal drawer pinned to the bottom of the screen, bound to ~C-t~.
+
+** Eshell (Emacs Lisp Shell)
+
+~eshell~ is implemented entirely in Emacs Lisp, making it completely uniform across operating systems without requiring an external shell binary. It can evaluate Elisp functions inline, pipe program output directly into Lisp variables or Emacs buffers, and seamlessly traverse remote servers via TRAMP.
+
+- ~company-mode~ hook: Enables in-buffer autocomplete for file paths, commands, and arguments.
+- ~eshell-history-size 10000~: Extends the command history retention.
+- ~eshell-destroy-buffer-when-process-dies t~: Automatically closes the Eshell buffer when typing ~exit~.
+
+- *Manual*: [[https://www.gnu.org/software/emacs/manual/html_node/eshell/][GNU Emacs Eshell Manual]]
+
+#+begin_src emacs-lisp
   (use-package eshell
-    :ensure nil ; Built-in package, do not download
-    :hook (eshell-mode . company-mode))
+    :ensure nil ; Built into Emacs core
+    :hook (eshell-mode . company-mode)
+    :custom
+    (eshell-history-size 10000)
+    (eshell-buffer-maximum-lines 10000)
+    (eshell-destroy-buffer-when-process-dies t))
 #+end_src
 
-** Vterm
-A fully-fledged, fast terminal emulator inside Emacs based on libvterm.
-(Note: Requires 'cmake' and a C compiler installed on your macOS system via Homebrew).
-#+begin_src emacs-lisp :tangle yes
+** Vterm (libvterm Terminal Emulator)
+
+~vterm~ (emacs-libvterm) is an ultra-fast terminal emulator implemented as a dynamic C module linked against ~libvterm~. Unlike Emacs' legacy ~ansi-term~ or ~term~ modes, ~vterm~ can render high-throughput text streams, full ANSI 24-bit RGB colors, and interactive curses programs without UI stutter or memory bottlenecks.
+
+- *Repository*: [[https://github.com/akermu/emacs-libvterm][akermu/emacs-libvterm on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/vterm.html][vterm on MELPA]]
+- *Prerequisites*: Requires ~cmake~ and ~libvterm~. On macOS with Homebrew: ~brew install cmake libvterm~.
+
+*Keybindings & Modes:*
+- Standard keystrokes are passed directly to the shell process.
+- ~C-c C-t~ (~vterm-copy-mode~): Toggles copy mode, freezing the terminal into a standard readable Emacs buffer where you can navigate, search (~C-s~), and copy text using standard Emacs marks.
+- ~C-c C-y~: Pastes text into the terminal from the Emacs kill ring.
+
+#+begin_src emacs-lisp
   (use-package vterm
     :custom
-    ;; Increase the scrollback buffer (default is often too small)
+    ;; Generous scrollback line limit
     (vterm-max-scrollback 10000)
-    
-    ;; Make the terminal feel perfectly snappy
+
+    ;; Snappy rendering timer delay (in seconds)
     (vterm-timer-delay 0.01)
-    
-    ;; Kill the buffer automatically when the terminal session ends
+
+    ;; Automatically kill buffer when the subshell process exits (e.g. typing exit or C-d)
     (vterm-kill-buffer-on-exit t))
 #+end_src
 
-** Vterm Toggle
-A modern alternative to shell-pop. Drops down a vterm instance at the bottom of the screen.
-#+begin_src emacs-lisp :tangle yes
+** Vterm Toggle (Quake-Style Drop-Down Drawer)
+
+~vterm-toggle~ provides a convenient drop-down terminal drawer that pops up at the bottom of the active frame and can be toggled in and out of view with a single keystroke (~C-t~).
+
+- Bound to ~C-t~ globally and inside ~vterm-mode-map~, allowing you to dismiss the terminal immediately from within the prompt.
+- ~vterm-toggle-scope 'project~: Automatically opens the terminal in the root directory of the current Projectile or ~project.el~ workspace.
+- ~display-buffer-alist~ integration: Confines the terminal window to the bottom 30% of the screen without disrupting existing editor splits.
+
+- *Repository*: [[https://github.com/jixiuf/vterm-toggle][jixiuf/vterm-toggle on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/vterm-toggle.html][vterm-toggle on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package vterm-toggle
     :bind (("C-t" . vterm-toggle)
            :map vterm-mode-map
            ("C-t" . vterm-toggle))
     :custom
-    ;; Make it pop up at the bottom of the screen instead of taking over
+    ;; Pop up at the bottom of the screen instead of taking over the full frame
     (vterm-toggle-fullscreen-p nil)
-    ;; Keep terminal instances separated by project
+    ;; Scope terminal working directory to the current project root
     (vterm-toggle-scope 'project)
     :config
-    ;; Define the popup window behavior (bottom of screen, 30% height)
+    ;; Configure display rules: bottom of screen, 30% window height
     (add-to-list 'display-buffer-alist
                  '((lambda (buffer-or-name _)
                      (let ((buffer (get-buffer buffer-or-name)))
