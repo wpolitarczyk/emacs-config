@@ -2208,8 +2208,38 @@ Because its automated pair expansions can occasionally overlap with ~smartparens
 #+end_src
 
 * Org-mode
-** General Configuration
-#+begin_src emacs-lisp :tangle yes
+
+A versatile system for organizing notes, managing projects and Getting Things Done (GTD) workflows, scheduling appointments with dynamic Agenda views, annotating electronic publications (PDF, EPUB, DjVu), and conducting literate programming with Org-Babel.
+
+** Core Configuration & GTD Workflow
+
+Org mode turns plain text files into an intuitive, hierarchical information manager. We configure key bindings, directory structures, drawers, and behavioral options tailored for research notes and GTD task tracking.
+
+- *Official Website*: [[https://orgmode.org/][Org Mode]]
+- *Repository*: [[https://git.savannah.gnu.org/cgit/emacs/org-mode.git][Org Mode on Savannah]] / [[https://github.com/emacs-straight/org-mode][Org Mirror]]
+- *Manual*: [[https://orgmode.org/manual/][GNU Org Manual]]
+
+*** Visual Indentation & Line Wrapping
+- ~visual-line-mode~: Enables soft word wrapping at window boundaries without inserting hard newline characters.
+- ~org-indent-mode~: Applies clean, virtual indentation according to headline hierarchy level, concealing the leading asterisks for a clean document presentation.
+
+*** State Logging, Drawers & Folding
+- ~org-directory "~/Dropbox/org"~: Central directory for all personal and academic notes.
+- ~org-log-into-drawer t~ and ~org-clock-into-drawer "LOGBOOK"~: Automatically channels state change notes and clocking timestamps into collapsed ~:LOGBOOK:~ drawers, keeping the main note body clean and readable.
+- ~org-log-done 'time~: Automatically inserts a closed timestamp (~CLOSED: [timestamp]~) whenever a TODO item transitions to a DONE state.
+- ~org-startup-folded 'fold~: Opens Org files in an overview state with only top-level headings visible.
+- ~org-catch-invisible-edits 'smart~: Prevents accidental editing or deletion of folded/invisible text.
+
+*** Academic Math & Entity Highlighting
+- ~org-highlight-latex-and-related '("latex" "script" "entities")~: Provides real-time syntax highlighting for inline/display LaTeX math formulas (~$...$~, ~\[...\]~), super/subscripts (~x^2~, ~a_i~), and LaTeX entities (~\alpha~, ~\to~).
+
+*** Dynamic Agenda & Refiling Logic
+- ~org-agenda-files~: Automatically scans the entire ~agenda/~ directory recursively for all ~.org~ files when the directory exists on disk.
+- ~org-default-notes-file~: Directs new captures to ~~/Dropbox/org/agenda/Inbox.org~.
+- Refiling targets (~org-refile-targets~): Allows refiling entries up to 5 levels deep across all active agenda files with full outline path completion (~org-refile-use-outline-path 'file~).
+- Task Dependencies (~org-enforce-todo-dependencies t~): Prevents marking a parent or sequential task as DONE until all dependent child tasks are completed, visually dimming blocked tasks in agenda views.
+
+#+begin_src emacs-lisp
   (use-package org
     :ensure t
     :bind
@@ -2219,10 +2249,10 @@ Because its automated pair expansions can occasionally overlap with ~smartparens
     :hook ((org-mode . visual-line-mode)
            (org-mode . org-indent-mode))
     :config
-    ;; Path setup - Adjusted for your likely Google Drive or Dropbox path
-    (setq org-directory "~/Dropbox/org") 
+    ;; Path setup - Adjusted for your cloud-synced Dropbox directory
+    (setq org-directory "~/Dropbox/org")
     (setq org-agenda-directory (concat org-directory "/agenda"))
-    
+
     ;; Appearance and Behavior
     (setq org-M-RET-may-split-line '((default . nil))
           org-log-into-drawer t
@@ -2231,14 +2261,15 @@ Because its automated pair expansions can occasionally overlap with ~smartparens
           org-startup-folded 'fold
           org-catch-invisible-edits 'smart)
 
-    ;; Academic/Math focus
+    ;; Academic/Math focus: highlight LaTeX math, scripts, and entities
     (setq org-highlight-latex-and-related '("latex" "script" "entities"))
 
-    ;; Agenda setup: Automatically find all org files in the agenda directory
-    (setq org-agenda-files (directory-files-recursively org-agenda-directory "\\.org$"))
+    ;; Agenda setup: Automatically discover all .org files in the agenda directory
+    (when (file-directory-p org-agenda-directory)
+      (setq org-agenda-files (directory-files-recursively org-agenda-directory "\\.org$")))
     (setq org-default-notes-file (concat org-agenda-directory "/Inbox.org"))
 
-    ;; Refiling logic
+    ;; Refiling logic across all agenda files
     (setq org-refile-use-outline-path 'file
           org-outline-path-complete-in-steps nil
           org-refile-targets '((org-agenda-files :maxlevel . 5))
@@ -2249,38 +2280,76 @@ Because its automated pair expansions can occasionally overlap with ~smartparens
           org-track-ordered-property-with-tag t
           org-agenda-dim-blocked-tasks t)
 
-    (org-clock-persistence-insinuate)
+    ;; Persist clocking history across Emacs sessions
+    (org-clock-persistence-insinuate))
 #+end_src
 
-** UI Enhancements
-#+begin_src emacs-lisp :tangle yes
-  ;; Modern bullets
-  (use-package org-bullets
-    :hook (org-mode . org-bullets-mode))
+** Modern UI Enhancements
 
+*** Heading Bullets (org-superstar)
+
+~org-superstar~ is the modern, actively-maintained drop-in successor to ~org-bullets~. It replaces plain-text asterisks with elegant UTF-8 bullets across headings and lists, safely prevents bullet rendering inside code blocks, and preserves custom theme font colors and sizes.
+
+- *Repository*: [[https://github.com/integral-dw/org-superstar-mode][integral-dw/org-superstar-mode on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/org-superstar.html][org-superstar on MELPA]]
+
+#+begin_src emacs-lisp
+  ;; Modern UTF-8 bullets for headings and lists (successor to org-bullets)
+  (use-package org-superstar
+    :hook (org-mode . org-superstar-mode)
+    :config
+    (setq org-superstar-remove-leading-stars t))
+#+end_src
+
+*** Sticky Headlines (org-sticky-header)
+
+~org-sticky-header~ pins the header line of the currently visited Org section at the top of the window while scrolling long notes, ensuring you never lose track of context.
+
+- *Repository*: [[https://github.com/alphapapa/org-sticky-header][alphapapa/org-sticky-header on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/org-sticky-header.html][org-sticky-header on MELPA]]
+
+#+begin_src emacs-lisp
   ;; Keep the headline visible while scrolling long notes
   (use-package org-sticky-header
     :hook (org-mode . org-sticky-header-mode))
+#+end_src
 
-  ;; Better links from clipboard
+*** Smart Web Link Capture (org-cliplink)
+
+~org-cliplink~ takes a URL from the system clipboard, fetches the remote web page's ~<title>~ element in the background, and inserts a clean, human-readable ~[[url][Page Title]]~ link at point.
+
+- *Repository*: [[https://github.com/rexim/org-cliplink][rexim/org-cliplink on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/org-cliplink.html][org-cliplink on MELPA]]
+
+#+begin_src emacs-lisp
+  ;; Better links from clipboard (queries URL page titles)
   (use-package org-cliplink
     :bind ("C-x p i" . org-cliplink))
 #+end_src
 
-** Custom GTD Functions
-#+begin_src emacs-lisp :tangle yes
-  (defun org-reset-checkbox-state-maybe()
+** Custom GTD Workflow Functions
+
+Automated utilities to optimize Getting Things Done workflows.
+
+*** Automatic Checkbox Reset on Recurring Tasks
+When a repeating or recurring task is marked DONE, ~org-reset-checkbox-state-maybe~ automatically resets all checkboxes (~[ ]~) in its subtrees if the entry has the ~:RESET_CHECK_BOXES:~ property set.
+
+*** Unique ID Link Generation (<f6>)
+~my/copy-idlink-to-clipboard~ generates or retrieves a permanent UUID for the current headline (~org-id-get-create~) and places a formatted ~[[id:uuid][Headline]]~ link onto the kill ring. If called from an active Agenda buffer, it seamlessly switches to the underlying file heading first.
+
+#+begin_src emacs-lisp
+  (defun org-reset-checkbox-state-maybe ()
     "Reset all checkboxes in an entry if the RESET_CHECK_BOXES property is set."
     (interactive)
-    (if (org-entry-get (point) "RESET_CHECK_BOXES")
-        (org-reset-checkbox-state-subtree)))
+    (when (org-entry-get (point) "RESET_CHECK_BOXES")
+      (org-reset-checkbox-state-subtree)))
 
   (add-hook 'org-after-todo-state-change-hook
             (lambda ()
               (when (member org-state org-done-keywords)
                 (org-reset-checkbox-state-maybe))))
 
-  (defun my/copy-idlink-to-clipboard()
+  (defun my/copy-idlink-to-clipboard ()
     "Create or get an ID for the current headline and copy a link to clipboard."
     (interactive)
     (when (eq major-mode 'org-agenda-mode)
@@ -2294,25 +2363,53 @@ Because its automated pair expansions can occasionally overlap with ~smartparens
           (message "Copied ID link: %s" link))
       (error "Not in an Org buffer")))
 
-  (global-set-key (kbd "<f6>") 'my/copy-idlink-to-clipboard)
+  (global-set-key (kbd "<f6>") #'my/copy-idlink-to-clipboard)
 #+end_src
 
-** Org-Agenda and Calendar
-#+begin_src emacs-lisp :tangle yes
+** Agenda, Calendar & Time Management
+
+*** Visual Calendar View (calfw & calfw-org)
+
+~calfw~ provides a rich, graphical calendar grid for Emacs, displaying scheduled tasks and deadlines from Org-agenda in month, week, two-week, and day layouts.
+
+- *Repository*: [[https://github.com/kiwanami/emacs-calfw][kiwanami/emacs-calfw on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/calfw.html][calfw on MELPA]] / [[https://melpa.org/packages/calfw-org.html][calfw-org on MELPA]]
+
+#+begin_src emacs-lisp
   ;; Visual calendar view
   (use-package calfw
     :ensure t)
-  (use-package calfw-org
-    :bind ("C-c A" . cfw:open-org-calendar))
 
-  ;; Precise clocking
+  (use-package calfw-org
+    :after (calfw org)
+    :bind ("C-c A" . cfw:open-org-calendar))
+#+end_src
+
+*** Fast Task Clocking (org-mru-clock)
+
+~org-mru-clock~ enables rapid clocking into tasks by presenting an interactive, completion-filtered list of your Most Recently Used (MRU) tasks across all agenda files.
+
+- *Repository*: [[https://github.com/unhammer/org-mru-clock][unhammer/org-mru-clock on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/org-mru-clock.html][org-mru-clock on MELPA]]
+
+#+begin_src emacs-lisp
+  ;; Precise clocking with Most Recently Used tasks
   (use-package org-mru-clock
     :bind (("C-c C-x i" . org-mru-clock-in)
            ("C-c C-x C-j" . org-mru-clock-select-recent-task))
     :config
     (setq org-mru-clock-files #'org-agenda-files))
+#+end_src
 
-  ;; Pomodoro timer for deep work
+*** Pomodoro Deep Work Timer (org-pomodoro)
+
+~org-pomodoro~ provides a Pomodoro technique timer integrated directly into Org clocking. It displays active countdowns and break periods in the modeline, plays sound notifications, and logs Pomodoro intervals to the task's ~:LOGBOOK:~ drawer.
+
+- *Repository*: [[https://github.com/emacsorphanage/org-pomodoro][emacsorphanage/org-pomodoro on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/org-pomodoro.html][org-pomodoro on MELPA]]
+
+#+begin_src emacs-lisp
+  ;; Pomodoro timer for deep work sessions
   (use-package org-pomodoro
     :defer t
     :config
@@ -2320,16 +2417,47 @@ Because its automated pair expansions can occasionally overlap with ~smartparens
           org-pomodoro-short-break-length 5))
 #+end_src
 
-** Research and PDFs
-#+begin_src emacs-lisp :tangle yes
+** Academic Research, Document Reading & Annotation
+
+A synchronized environment for reading books, papers, and manuscripts while capturing structured annotations.
+
+*** Synchronized Document Annotation (org-noter)
+
+~org-noter~ creates a dual-window synchronized study session between an electronic document (PDF, EPUB, or DjVu) and an Org note buffer. Taking a note automatically links it to the exact page and coordinates of the document.
+
+- *Repository*: [[https://github.com/org-noter/org-noter][org-noter/org-noter on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/org-noter.html][org-noter on MELPA]]
+
+#+begin_src emacs-lisp
   ;; Note taking synchronized with PDF/DJVU/EPUB
   (use-package org-noter
     :config
     (setq org-noter-notes-search-path '("~/Dropbox/org/notes/")))
+#+end_src
 
-  (use-package nov :mode ("\\.epub\\'" . nov-mode))
+*** Electronic Book Readers (nov & djvu)
+
+- ~nov.el~: Feature-rich major mode for reading EPUB files with customizable typography, metadata extraction, and bookmarking.
+- ~djvu.el~: Viewer and editor for DjVu documents.
+
+- *nov.el Website*: [[https://depp.brause.cc/nov.el/][nov.el by Nicolas Richard]]
+- *nov.el MELPA*: [[https://melpa.org/packages/nov.html][nov on MELPA]]
+
+#+begin_src emacs-lisp
+  (use-package nov
+    :mode ("\\.epub\\'" . nov-mode))
+
   (use-package djvu)
+#+end_src
 
+*** PDF-Tools Link Integration (org-pdftools)
+
+~org-pdftools~ extends Org's hyperlink system with ~pdftools:...~ links. Storing a link with ~C-c l~ inside ~pdf-view-mode~ captures the exact page and coordinates, allowing one-click jumping back to source passages.
+
+- *Repository*: [[https://github.com/fuxialexander/org-pdftools][fuxialexander/org-pdftools on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/org-pdftools.html][org-pdftools on MELPA]]
+
+#+begin_src emacs-lisp
   ;; High-level integration with pdf-tools links
   (use-package org-pdftools
     :after org
@@ -2340,33 +2468,50 @@ Because its automated pair expansions can occasionally overlap with ~smartparens
                                :complete #'org-pdftools-complete-link
                                :store #'org-pdftools-store-link
                                :export #'org-pdftools-export)
-      (add-hook 'org-store-link-functions 'org-pdftools-store-link)))
+      (add-hook 'org-store-link-functions #'org-pdftools-store-link)))
+#+end_src
 
+*** Zotero Citation Integration (zotxt)
+
+~zotxt~ integrates with the Zotero desktop application via the zotxt plugin, allowing direct search and insertion of Zotero library references into Org files.
+
+- *Repository*: [[https://github.com/egh/zotxt-emacs][egh/zotxt-emacs on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/zotxt.html][zotxt on MELPA]]
+
+#+begin_src emacs-lisp
   ;; Zotero integration
   (use-package zotxt
     :hook (org-mode . org-zotxt-mode))
 #+end_src
 
-** Org-babel configuration
+** Literate Programming (Org-Babel)
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+Org-Babel enables literate programming and reproducible research by executing embedded source code blocks and feeding results back into the document.
+
+*** Asymptote Babel Support (ob-asymptote)
+Allows compiling descriptive vector graphics mathematical diagrams defined in ~#+begin_src asymptote~ blocks directly into figures.
+
+- *Repository*: [[https://github.com/emacs-straight/ob-asymptote][ob-asymptote on GitHub]]
+
+#+begin_src emacs-lisp
   (use-package ob-asymptote
     :ensure t)
-#+END_SRC
+#+end_src
 
+*** Multi-Language Execution
+Enables active execution for Emacs Lisp, Python, SQLite, R, Shell scripts, and Asymptote diagrams.
 
-#+BEGIN_SRC emacs-lisp :tangle yes
-  ;; Configure org-babel
-      (org-babel-do-load-languages 'org-babel-load-languages '((emacs-lisp . t)
-                                                               (python . t)
-                                                               ;; (ipython . t)
-                                                               ;; (sage . t)
-                                                               (sqlite . t)
-                                                               (R . t)
-            						   (shell . t)
-                                                               (asymptote . t)))
-      )
-#+END_SRC
+#+begin_src emacs-lisp
+  ;; Configure org-babel execution languages
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t)
+     (python . t)
+     (sqlite . t)
+     (R . t)
+     (shell . t)
+     (asymptote . t)))
+#+end_src
 
 * Yasnippet
 
