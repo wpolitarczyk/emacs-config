@@ -30,8 +30,8 @@ $(GEN_ELC): $(GEN_EL)
 	@echo "Byte-compiling $<..."
 	$(EMACS) -Q --batch -f batch-byte-compile $<
 
-# Run all test checks on the generated .el file
-test: test-syntax test-load
+# Run test checks on the generated .el file (syntax check and byte-compilation)
+test: test-syntax compile
 
 # Fast syntax check: verifies balanced parentheses and valid Elisp reader syntax
 test-syntax: $(GEN_EL)

@@ -1,0 +1,43 @@
+name: Test Emacs Configuration
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        emacs-version:
+          - '29.4'
+          - '30.1'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Emacs ${{ matrix.emacs-version }}
+        uses: purcell/setup-emacs@master
+        with:
+          version: ${{ matrix.emacs-version }}
+
+      - name: Display Emacs version
+        run: emacs --version
+
+      - name: Run test suite (tangle, syntax check, and byte-compile)
+        run: make test
+
+      - name: Test configuration installation
+        run: |
+          make install TARGET_DIR="$RUNNER_TEMP/.emacs.d"
+          test -f "$RUNNER_TEMP/.emacs.d/init.el"
+          test -f "$RUNNER_TEMP/.emacs.d/config.org"
+          test -f "$RUNNER_TEMP/.emacs.d/config.el"
+          test -d "$RUNNER_TEMP/.emacs.d/snippets"
+
+      - name: Clean build artifacts
+        run: make clean
