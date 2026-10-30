@@ -2796,8 +2796,8 @@ A rapid-access transient menu bound to ~C-c f h~ for jumping across misspelled w
   Flyspell
   ^Navigation & Fix^     ^Dictionary^              ^Actions^
   ^^^^^^^^------------------------------------------------------------------
-  _n_: Next Misspelling  _e_: English (en_US)      _b_: Check Buffer
-  _c_: Correct Word      _p_: Polish (pl_PL)       _q_: Quit
+  _n_: Next Misspelling  _e_: English (en-US)      _b_: Check Buffer
+  _c_: Correct Word      _p_: Polish (pl-PL)       _q_: Quit
   ^ ^                    _d_: Select Dictionary
   "
     ("n" flyspell-goto-next-error)
