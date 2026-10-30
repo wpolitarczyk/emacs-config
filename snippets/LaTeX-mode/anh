@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: Anchored arc algebra
+# key: anh
+# --
+\AnH_{\bm{$0}}

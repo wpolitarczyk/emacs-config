@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: HOM
+# key: HOM
+# contributor: wp
+# --
+\HOM_{$3}^{$4}($1,$2)

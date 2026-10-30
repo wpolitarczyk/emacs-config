@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: rr
+# key: RR
+# --
+\mathbb{R}^{$1}$0

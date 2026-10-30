@@ -1,0 +1,4 @@
+# key: note
+# name: beamer-note
+# --
+\note[$1]<$2>{$0}

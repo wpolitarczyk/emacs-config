@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: beamer-uncover
+# key: uncover
+# --
+\uncover<$1>{$0}

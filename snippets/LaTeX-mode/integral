@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: integral
+# key: int
+# --
+\int${1:_{$2}}${3:^{$4}} $5 \, \mathrm{d} $6 $0

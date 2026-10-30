@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: begin_src
+# key: begin
+# contributor: wp
+# --
+#+BEGIN_SRC $1 ${2::tangle ${3: $$(yas-choose-value '("yes" "no"))}}
+$0
+#+END_SRC

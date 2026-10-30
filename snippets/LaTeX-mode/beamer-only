@@ -1,0 +1,4 @@
+# key: only
+# name: beamer-only
+# --
+\only<${1:$$(yas-choose-value '("all" "presentation" "article"))}>{$0}

@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: org-mode quote
+# key: quote
+# contributor: wp
+# --
+#+BEGIN_QUOTE
+$0
+#+END_QUOTE

@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: beamer-frametitle
+# key: frametitle
+# --
+\frametitle<${1:$$(yas-choose-value '("all" "presentation" "article"))}>{$0}

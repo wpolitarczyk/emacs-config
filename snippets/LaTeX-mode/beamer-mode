@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: beamer mode
+# key: mode
+# --
+\mode<${1:$$(yas-choose-value '("all" "presentation" "article"))}>{$0}

@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: tikzcd
+# key: tikzcd
+# --
+\begin{tikzcd}[ampersand replacement=\&]
+$0
+\end{tikzcd}
