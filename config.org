@@ -1432,30 +1432,52 @@ When Helm was used as the primary completion framework, ~helm-projectile~ provid
 #+end_src
 
 * Programming
-** Environment and Paths
-#+begin_src emacs-lisp :tangle yes
-  ;; On macOS, GUI Emacs needs help finding Homebrew binaries
-  (use-package exec-path-from-shell
-    :ensure t
-    :if (memq window-system '(mac ns))
-    :config
-    (exec-path-from-shell-initialize))
 
+A comprehensive development environment integrating language servers, code completion, structured editing, mathematical computing tools, and Git version control workflows.
+
+** Environment & Performance Tuning
+
+High-throughput Language Server Protocol (LSP) communication exchanges voluminous JSON-RPC payloads between external language server processes (such as Pyright, Clangd, or Rust-Analyzer) and Emacs. By default, Emacs reads process output in 4KB chunks and runs garbage collection aggressively (~800KB threshold), which causes noticeable input latency and frame drops during fast code completion and diagnostic checks.
+
+Tuning these low-level IPC and memory settings eliminates stuttering and enables silky-smooth LSP interaction on modern multi-core machines (particularly on macOS Apple Silicon).
+
+Note: Environment variable synchronization (~$PATH~, ~$MANPATH~) across GUI Emacs frames is handled globally by ~exec-path-from-shell~ in the [[*Shell Environment Synchronization (exec-path-from-shell)][Interface Tweaks]] section, eliminating redundant shell subprocess spawns during startup.
+
+#+begin_src emacs-lisp
   ;; Global performance tweaks for LSP/Development
   (defun my/optimize-lsp-performance ()
     "Set key variables for LSP/Eglot stability and performance on macOS."
-    (setq read-process-output-max (* 1024 1024) ;; 1MB buffer
-          gc-cons-threshold (* 100 1024 1024))) ;; 100MB GC threshold
+    (setq read-process-output-max (* 1024 1024)   ; 1MB buffer for reading process outputs (default is 4KB)
+          gc-cons-threshold (* 100 1024 1024)))   ; 100MB GC threshold during development to prevent stutter
 
   (my/optimize-lsp-performance)
 #+end_src
 
 ** Modern Development Tools
-#+begin_src emacs-lisp :tangle yes
+
+*** Visual Delimiters (rainbow-delimiters)
+
+~rainbow-delimiters~ provides subtle, color-coded rainbow highlighting for nested parentheses, brackets, and braces according to their nesting depth. This allows instant visual identification of matching delimiter pairs without having to navigate to them.
+
+- *Repository*: [[https://github.com/Fanael/rainbow-delimiters][Fanael/rainbow-delimiters on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/rainbow-delimiters.html][rainbow-delimiters on MELPA]]
+
+#+begin_src emacs-lisp
   ;; Visual delimiters (rainbow brackets)
   (use-package rainbow-delimiters
     :hook (prog-mode . rainbow-delimiters-mode))
+#+end_src
 
+*** Lightweight Code Navigation (dumb-jump)
+
+~dumb-jump~ is a jump-to-definition package that works without complex indexing or pre-built tags databases. It uses external search backends (~ripgrep~, ~ag~, or ~grep~) with a comprehensive set of regular expressions tailored to over 50 programming languages.
+
+When integrated into Emacs' native ~xref~ system, it serves as an instant definition finder for files outside an active LSP workspace. We bind a dedicated Hydra to smoothly jump to definitions and return.
+
+- *Repository*: [[https://github.com/jacktasia/dumb-jump][jacktasia/dumb-jump on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/dumb-jump.html][dumb-jump on MELPA]]
+
+#+begin_src emacs-lisp
   ;; Jump to definition without complex indexing
   (use-package dumb-jump
     :after hydra
@@ -1468,7 +1490,13 @@ When Helm was used as the primary completion framework, ~helm-projectile~ provid
       ("b" dumb-jump-back "Back")
       ("o" dumb-jump-go-other-window "Other window")
       ("q" nil "Quit")))
+#+end_src
 
+*** AI-Assisted Coding (ai-code)
+
+~ai-code~ integrates modern AI coding assistants directly into Emacs workflows. Configured with ~gemini-cli~ as the backend and bound to ~C-c a~, it facilitates code generation, refactoring, documentation review, and interactive debugging.
+
+#+begin_src emacs-lisp
   ;; Gemini AI Integration
   (use-package ai-code
     :bind ("C-c a" . ai-code-map)
@@ -1476,8 +1504,20 @@ When Helm was used as the primary completion framework, ~helm-projectile~ provid
     (setq ai-code-backend 'gemini-cli))
 #+end_src
 
-** LSP (Language Server Protocol)
-#+begin_src emacs-lisp :tangle yes
+** Language Server Protocol (LSP Mode)
+
+*** LSP Mode & LSP UI
+
+~lsp-mode~ transforms Emacs into a fully-featured IDE powered by the Language Server Protocol. It provides real-time diagnostics, code actions, semantic tokens, type hover information, and rename refactoring across dozens of programming languages.
+
+~lsp-ui~ enhances the client with modern graphical overlays, including child-frame documentation popups (~lsp-ui-doc~) and inline code definition peeking (~lsp-ui-peek~).
+
+- *LSP Mode Repository*: [[https://github.com/emacs-lsp/lsp-mode][emacs-lsp/lsp-mode on GitHub]]
+- *LSP Mode MELPA*: [[https://melpa.org/packages/lsp-mode.html][lsp-mode on MELPA]]
+- *LSP UI Repository*: [[https://github.com/emacs-lsp/lsp-ui][emacs-lsp/lsp-ui on GitHub]]
+- *LSP UI MELPA*: [[https://melpa.org/packages/lsp-ui.html][lsp-ui on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package lsp-mode
     :commands (lsp lsp-deferred)
     :init
@@ -1498,75 +1538,138 @@ When Helm was used as the primary completion framework, ~helm-projectile~ provid
     (lsp-ui-peek-enable t))
 #+end_src
 
-#+BEGIN_SRC emacs-lisp :tangle no
-(use-package helm-lsp
-    :after (helm lsp-mode)
-    :commands helm-lsp-workspace-symbol)
-#+END_SRC
+*** Consult-LSP (Modern Minibuffer Search)
 
-** Python and SageMath
-#+begin_src emacs-lisp :tangle yes
-    (use-package conda
-      :custom
-      (conda-anaconda-home (expand-file-name "/opt/homebrew/anaconda3/"))
-      ;; (conda-env-home-directory (expand-file-name "/opt/homebrew/anaconda3/envs/"))
-      :config
-      (conda-env-initialize-interactive-shells)
-      (conda-env-initialize-eshell)
-      (conda-env-autoactivate-mode t))
+~consult-lsp~ connects ~lsp-mode~ to the modern Vertico and Consult completion framework. It provides interactive, live-filtering workspace symbol searches (~consult-lsp-symbols~) and project-wide diagnostic browsers (~consult-lsp-diagnostics~) with candidate preview.
 
-    (defun my/generate-sage-pyright-config (env-name)
-      "Generates pyrightconfig.json by sourcing .zshrc and running a temp python script.
-    ENV-NAME: The name of the conda environment (string)."
-      (interactive
-       (list
-        (read-string "Conda environment name (default sage_env): " nil nil "sage_env")))
-      (let* ((project-root (projectile-project-root))
-             (config-file (expand-file-name "pyrightconfig.json" project-root))
-             (temp-script-file (make-temp-file "sage_paths_" nil ".py")))
-        (with-temp-file temp-script-file
-          (insert "import sys, json\n")
-          (insert "print('__JSON_START__' + json.dumps([p for p in sys.path if 'site-packages' in p]) + '__JSON_END__')"))
-        (let* ((shell-cmd (format "zsh -c 'source ~/.zshrc && load_conda && conda activate %s && sage -python %s'" 
-                                  env-name temp-script-file))
-               (raw-output (shell-command-to-string shell-cmd))
-               (clean-json (if (string-match "__JSON_START__\\(.*\\)__JSON_END__" raw-output)
-                               (match-string 1 raw-output) nil)))
-          (delete-file temp-script-file)
-          (if (not clean-json)
-              (with-current-buffer (get-buffer-create "*sage-config-debug*")
-                (erase-buffer)
-                (insert (format "ERROR: Could not extract paths from env: %s\n" env-name))
-                (insert raw-output)
-                (pop-to-buffer (current-buffer))
-                (error "Failed. Check *sage-config-debug*."))
-            (with-temp-file config-file
-              (insert "{\n \"extraPaths\": ")
-              (insert clean-json)
-              (insert "\n}")
-              (indent-region (point-min) (point-max)))
-            (message "Success! Configured Pyright for environment: %s" env-name)
-            (lsp-workspace-restart)))))
+- *Repository*: [[https://github.com/gagbo/consult-lsp][gagbo/consult-lsp on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/consult-lsp.html][consult-lsp on MELPA]]
 
-    (use-package python
-      :ensure nil
-      :config
-      (setq python-shell-interpreter "python3"
-            python-indent-offset 4))
-
-    (use-package lsp-pyright
-      :after (lsp-mode python)
-      :hook (python-mode . lsp-deferred))
-
-    (use-package sage-shell-mode
-      :mode ("\\.sage\\'" . sage-shell:sage-mode)
-      :config
-      (sage-shell:define-alias)
-      (setq sage-shell:use-prompt-toolkit nil))
+#+begin_src emacs-lisp
+  (use-package consult-lsp
+    :after (lsp-mode consult)
+    :commands (consult-lsp-symbols consult-lsp-diagnostics)
+    :bind (:map lsp-mode-map
+                ([remap xref-find-apropos] . consult-lsp-symbols)))
 #+end_src
 
-** Completion, Languages & Utilities
-#+begin_src emacs-lisp :tangle yes
+*** Archived Helm-LSP Integration
+:PROPERTIES:
+:header-args: :tangle no
+:END:
+
+Previously, ~helm-lsp~ provided symbol search and workspace navigation within the Helm completion framework. Now that we have migrated to Vertico and Consult (via ~consult-lsp~), this package is kept for historical reference and is not tangled.
+
+#+begin_src emacs-lisp
+  (use-package helm-lsp
+    :after (helm lsp-mode)
+    :commands helm-lsp-workspace-symbol)
+#+end_src
+
+** Python & SageMath Mathematical Computing
+
+*** Conda Environment Management
+
+~conda.el~ provides seamless switching between Conda and Anaconda environments inside Emacs, automatically synchronizing Python paths for interactive shells and Eshell buffers.
+
+- *Repository*: [[https://github.com/necaris/conda.el][necaris/conda.el on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/conda.html][conda on MELPA]]
+
+#+begin_src emacs-lisp
+  (use-package conda
+    :custom
+    (conda-anaconda-home (expand-file-name "/opt/homebrew/anaconda3/"))
+    :config
+    (conda-env-initialize-interactive-shells)
+    (conda-env-initialize-eshell)
+    (conda-env-autoactivate-mode t))
+#+end_src
+
+*** SageMath Pyright Configuration Generator
+
+SageMath installs extensive Python site-packages inside its Conda or system environment. Because Pyright does not execute external interpreters dynamically, it needs explicit search paths defined in ~pyrightconfig.json~ under ~extraPaths~ to resolve SageMath imports and types.
+
+The interactive function ~my/generate-sage-pyright-config~ sources the user's shell environment, queries Sage's active ~sys.path~, and writes a localized ~pyrightconfig.json~ at the project root before restarting the LSP workspace.
+
+#+begin_src emacs-lisp
+  (defun my/generate-sage-pyright-config (env-name)
+    "Generates pyrightconfig.json by sourcing .zshrc and running a temp python script.
+  ENV-NAME: The name of the conda environment (string)."
+    (interactive
+     (list
+      (read-string "Conda environment name (default sage_env): " nil nil "sage_env")))
+    (let* ((project-root (projectile-project-root))
+           (config-file (expand-file-name "pyrightconfig.json" project-root))
+           (temp-script-file (make-temp-file "sage_paths_" nil ".py")))
+      (with-temp-file temp-script-file
+        (insert "import sys, json\n")
+        (insert "print('__JSON_START__' + json.dumps([p for p in sys.path if 'site-packages' in p]) + '__JSON_END__')"))
+      (let* ((shell-cmd (format "zsh -c 'source ~/.zshrc && load_conda && conda activate %s && sage -python %s'" 
+                                env-name temp-script-file))
+             (raw-output (shell-command-to-string shell-cmd))
+             (clean-json (if (string-match "__JSON_START__\\(.*\\)__JSON_END__" raw-output)
+                             (match-string 1 raw-output) nil)))
+        (delete-file temp-script-file)
+        (if (not clean-json)
+            (with-current-buffer (get-buffer-create "*sage-config-debug*")
+              (erase-buffer)
+              (insert (format "ERROR: Could not extract paths from env: %s\n" env-name))
+              (insert raw-output)
+              (pop-to-buffer (current-buffer))
+              (error "Failed. Check *sage-config-debug*."))
+          (with-temp-file config-file
+            (insert "{\n \"extraPaths\": ")
+            (insert clean-json)
+            (insert "\n}")
+            (indent-region (point-min) (point-max)))
+          (message "Success! Configured Pyright for environment: %s" env-name)
+          (lsp-workspace-restart)))))
+#+end_src
+
+*** Python Mode & LSP Pyright
+
+Configures Emacs' built-in ~python~ mode for 4-space indentation and ~python3~ interpreter, paired with ~lsp-pyright~ for Microsoft Pyright type checking and static analysis.
+
+- *LSP Pyright Repository*: [[https://github.com/emacs-lsp/lsp-pyright][emacs-lsp/lsp-pyright on GitHub]]
+- *LSP Pyright MELPA*: [[https://melpa.org/packages/lsp-pyright.html][lsp-pyright on MELPA]]
+
+#+begin_src emacs-lisp
+  (use-package python
+    :ensure nil
+    :config
+    (setq python-shell-interpreter "python3"
+          python-indent-offset 4))
+
+  (use-package lsp-pyright
+    :after (lsp-mode python)
+    :hook (python-mode . lsp-deferred))
+#+end_src
+
+*** SageMath Interactive Shell (sage-shell-mode)
+
+~sage-shell-mode~ provides an interactive REPL buffer for SageMath within Emacs, supporting command history, inline documentation, and plot rendering.
+
+- *Repository*: [[https://github.com/sagemath/sage-shell-mode][sagemath/sage-shell-mode on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/sage-shell-mode.html][sage-shell-mode on MELPA]]
+
+#+begin_src emacs-lisp
+  (use-package sage-shell-mode
+    :mode ("\\.sage\\'" . sage-shell:sage-mode)
+    :config
+    (sage-shell:define-alias)
+    (setq sage-shell:use-prompt-toolkit nil))
+#+end_src
+
+** In-Buffer Autocompletion (Company Mode)
+
+*** Company Core
+
+~company~ (Complete Anything) provides modular in-buffer autocompletion with pluggable backends. Configured with zero idle delay and a minimum prefix length of 1 for instant candidate display, with ~TAB~ bound to complete selection and ~C-n~/~C-p~ for navigation.
+
+- *Repository*: [[https://github.com/company-mode/company-mode][company-mode/company-mode on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/company.html][company on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package company
     :hook (prog-mode . company-mode)
     :bind (:map company-active-map
@@ -1578,17 +1681,54 @@ When Helm was used as the primary completion framework, ~helm-projectile~ provid
     (company-idle-delay 0.0)
     :config
     (global-company-mode 1))
+#+end_src
 
+*** Company Box (Child-Frame Front-End)
+
+~company-box~ replaces the default overlay completion popup with an elegant child-frame tooltip displaying type icons and inline documentation side-by-side with candidates.
+
+- *Repository*: [[https://github.com/sebastiencs/company-box][sebastiencs/company-box on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/company-box.html][company-box on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package company-box
     :hook (company-mode . company-box-mode))
+#+end_src
 
+** Language Modes & Mathematical Utilities
+
+*** Markdown Mode
+
+~markdown-mode~ provides full editing support for Markdown and GitHub Flavored Markdown (~gfm-mode~), with Pandoc integration for live previews and document exports.
+
+- *Repository*: [[https://github.com/jrblevin/markdown-mode][jrblevin/markdown-mode on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/markdown-mode.html][markdown-mode on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package markdown-mode
     :mode (("README\\.md\\'" . gfm-mode) ("\\.md\\'" . markdown-mode))
     :init (setq markdown-command "pandoc"))
+#+end_src
 
+*** ESS (Emacs Speaks Statistics / R)
+
+~ess~ provides interactive evaluation, script execution, and documentation lookup for statistical programming languages, specifically R and Sweave (~.Rnw~) files.
+
+- *Repository*: [[https://github.com/emacs-ess/ESS][emacs-ess/ESS on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/ess.html][ess on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package ess
     :mode (("\\.[rR]\\'" . R-mode) ("\\.Rnw\\'" . Rnw-mode)))
+#+end_src
 
+*** Asymptote Vector Graphics (asy-mode)
+
+Asymptote is a powerful descriptive vector graphics language designed for mathematical illustrations. Its Emacs major mode is loaded from Homebrew's site-lisp directory with live PDF reloading configured.
+
+- *Upstream Website*: [[https://asymptote.sourceforge.io/][Asymptote Vector Graphics on SourceForge]]
+
+#+begin_src emacs-lisp
   (use-package asy-mode
     :ensure nil
     :mode ("\\.asy\\'" . asy-mode)
@@ -1596,7 +1736,15 @@ When Helm was used as the primary completion framework, ~helm-projectile~ provid
     (add-to-list 'load-path "/opt/homebrew/share/emacs/site-lisp/asymptote/")
     :config
     (setq asy-command "asy -V -pdfreload -tex pdflatex"))
+#+end_src
 
+*** PARI/GP Computer Algebra System
+
+PARI/GP is a widely used computer algebra system designed for fast computations in number theory (factorizations, algebraic number fields, elliptic curves). This block loads ~pari.el~ from ~~/.emacs.d/site-lisp/pari~, sets up interactive ~gp~ REPL buffers, and customizes prompt recognition.
+
+- *Upstream Website*: [[https://pari.math.u-bordeaux.fr/][The PARI/GP Home Page]]
+
+#+begin_src emacs-lisp
   (use-package pari
     :ensure nil
     :load-path "~/.emacs.d/site-lisp/pari"
@@ -1614,14 +1762,25 @@ When Helm was used as the primary completion framework, ~helm-projectile~ provid
     ;; Correct Emacs regexp for a literal "(?<number>) " prompt:
     ;; "\\(" matches literal '(', "[?]" matches literal '?', "\\)" matches literal ')'
     (setq gp-prompt-pattern "^\\([?][0-9]*\\) "))
+#+end_src
 
+** Structural Delimiter Editing (Smartparens)
+
+*** Smartparens Configuration
+
+~smartparens~ is an advanced system for dealing with parens, pairs, and structural expressions (s-expressions). It handles insertion, automatic pairing, wrapping, and deletion across programming languages, Org mode, and LaTeX.
+
+Custom local pairs are registered for LaTeX equations (~\[ \]~, ~\( \)~, ~\{ \}~) and typographic Polish quotes (~„ ”~).
+
+- *Repository*: [[https://github.com/Fuco1/smartparens][Fuco1/smartparens on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/smartparens.html][smartparens on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package smartparens
     :hook ((prog-mode . smartparens-mode)
            (prog-mode . smartparens-strict-mode)
            (org-mode . smartparens-mode)
-           (LaTeX-mode . smartparens-mode)
-           ;; (LaTeX-mode . smartparens-strict-mode)
-           )
+           (LaTeX-mode . smartparens-mode))
     :bind (:map smartparens-mode-map
                 ("C-M-f" . sp-forward-sexp)
                 ("C-M-b" . sp-backward-sexp))
@@ -1634,85 +1793,137 @@ When Helm was used as the primary completion framework, ~helm-projectile~ provid
       (sp-local-pair 'LaTeX-mode "\\[" "\\]")
       (sp-local-pair 'LaTeX-mode "\\(" "\\)")
       (sp-local-pair 'LaTeX-mode "\\{" "\\}")
-      ;; Add Polish quotes if you write in Polish
-      (sp-local-pair 'text-mode "„" "”"))
-    
-    ;; Custom Hydra integration
-    (defhydra hydra-smartparens (:color pink :hint nil)
-      "
+      ;; Add Polish quotes for writing in Polish
+      (sp-local-pair 'text-mode "„" "”")))
+#+end_src
+
+*** Smartparens Hydra
+
+Structural manipulation (barfing, slurping, wrapping, transposing, and sexp traversal) can require complex, repetitive keystrokes. This Hydra binds all sexp operations to single mnemonic keys under the ~C-c s~ prefix.
+
+#+begin_src emacs-lisp
+  (defhydra hydra-smartparens (:color pink :hint nil)
+    "
   ^Nav^            ^Barf/Slurp^                 ^Depth^           ^Misc^
   ^---^------------^----------^-----------------^-----^-----------^----^----------
   _f_: next s-exp  _h_: barf back  _H_: slurp back  _u_: backward up  _w_: wrap
   _b_: prev s-exp  _l_: barf fwd   _L_: slurp fwd   _d_: down         _t_: transpose
   _n_: next char   ^ ^             ^ ^              _k_: kill s-exp   _q_: quit
   "
-      ;; Navigation
-      ("f" sp-next-sexp)
-      ("b" sp-previous-sexp)
-      ("n" sp-forward-char)
-      
-      ;; Barf/Slurp
-      ("h" sp-backward-barf-sexp)
-      ("l" sp-forward-barf-sexp)
-      ("H" sp-backward-slurp-sexp)
-      ("L" sp-forward-slurp-sexp)
-      
-      ;; Depth/Hierarchy
-      ("u" sp-backward-up-sexp)
-      ("d" sp-down-sexp)
-      
-      ;; Manipulation
-      ("w" sp-wrap-round)
-      ("t" sp-transpose-sexp)
-      ("k" sp-kill-sexp)
-      
-      ("q" nil :color blue))
+    ;; Navigation
+    ("f" sp-next-sexp)
+    ("b" sp-previous-sexp)
+    ("n" sp-forward-char)
+    
+    ;; Barf/Slurp
+    ("h" sp-backward-barf-sexp)
+    ("l" sp-forward-barf-sexp)
+    ("H" sp-backward-slurp-sexp)
+    ("L" sp-forward-slurp-sexp)
+    
+    ;; Depth/Hierarchy
+    ("u" sp-backward-up-sexp)
+    ("d" sp-down-sexp)
+    
+    ;; Manipulation
+    ("w" sp-wrap-round)
+    ("t" sp-transpose-sexp)
+    ("k" sp-kill-sexp)
+    
+    ("q" nil :color blue))
 
-    ;; Bind it to a convenient key
-    (global-set-key (kbd "C-c s") 'hydra-smartparens/body)
-    )
+  ;; Bind to convenient global key
+  (global-set-key (kbd "C-c s") 'hydra-smartparens/body)
+#+end_src
 
+** Enhanced Help Buffers & Compilation Workflow
+
+*** Modern Help Inspection (helpful)
+
+~helpful~ is an alternative to the built-in Emacs help system that provides richer contextual information: full source code with syntax highlighting, docstrings with interactive links, call sites, disassembly, and current variable values.
+
+- *Repository*: [[https://github.com/Wilfred/helpful][Wilfred/helpful on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/helpful.html][helpful on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package helpful
-    :bind (("C-h f" . helpful-function) ("C-h v" . helpful-variable)
-           ("C-h k" . helpful-key) ("C-c C-." . helpful-at-point)))
+    :bind (("C-h f" . helpful-function)
+           ("C-h v" . helpful-variable)
+           ("C-h k" . helpful-key)
+           ("C-c C-." . helpful-at-point)))
+#+end_src
 
+*** Rapid Project Compilation
+
+Configures Emacs' compilation mode to cleanly replace old compilation processes, suppress unnecessary prompt dialogs, default to ~make -k~, and map one-key builds to ~<f5>~.
+
+#+begin_src emacs-lisp
   (setq compilation-always-kill t
         compilation-ask-about-save nil
         compile-command "make -k")
   (global-set-key (kbd "<f5>") 'compile)
 #+end_src
 
-** Git Related Packages
-*** Magit
-The best Git interface for Emacs.
-#+begin_src emacs-lisp :tangle yes
-    (use-package magit
-      :bind (("C-c m s" . magit-status)
-             ("C-c m l" . magit-log)
-             ("C-c m L" . magit-log-all-branches)
-             ("C-c m b" . magit-branch)
-             ("C-c m i" . magit-init)
-             ("C-c m c" . magit-clone))
-      :config
-      ;; Refresh magit status when files are saved
-      (setq magit-save-repository-buffers 'dontask)
-      (setq magit-diff-refine-hunk 'all) ;; Highlight specific word changes within lines
-      )
+** Git Integration & Version Control
 
-    (use-package magit-delta
-      :hook (magit-mode . magit-delta-mode))
+*** Magit: Git Porcelain inside Emacs
+
+~magit~ is widely recognized as the gold standard of Git interfaces across all text editors and IDEs. It provides an intuitive, keyboard-driven interface to every Git capability—staging hunks, interactive rebasing, branching, cherry-picking, stashing, and logging—with granular visual control.
+
+We configure ~magit-diff-refine-hunk 'all~ to highlight word-level changes within modified lines, and ~magit-save-repository-buffers 'dontask~ to automatically save worktree buffers before opening the status screen.
+
+- *Repository*: [[https://github.com/magit/magit][magit/magit on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/magit.html][magit on MELPA]]
+- *Official Documentation*: [[https://magit.vc/][magit.vc]]
+
+#+begin_src emacs-lisp
+  (use-package magit
+    :bind (("C-c m s" . magit-status)
+           ("C-c m l" . magit-log)
+           ("C-c m L" . magit-log-all-branches)
+           ("C-c m b" . magit-branch)
+           ("C-c m i" . magit-init)
+           ("C-c m c" . magit-clone))
+    :config
+    ;; Refresh magit status when files are saved
+    (setq magit-save-repository-buffers 'dontask)
+    (setq magit-diff-refine-hunk 'all)) ; Highlight specific word changes within lines
 #+end_src
 
-*** Forge
-Access GitHub/GitLab issues and pull requests inside Magit.
-#+begin_src emacs-lisp :tangle yes
+*** Magit Delta: Syntax-Highlighted Diffs
+
+~magit-delta~ enhances Magit diff buffers using Dan Davison's external ~delta~ tool, providing syntax highlighting, side-by-side line numbering, and box headers inside Magit diff buffers.
+
+- *Repository*: [[https://github.com/dandavison/magit-delta][dandavison/magit-delta on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/magit-delta.html][magit-delta on MELPA]]
+
+#+begin_src emacs-lisp
+  (use-package magit-delta
+    :hook (magit-mode . magit-delta-mode))
+#+end_src
+
+*** Forge: GitHub & GitLab Integration
+
+~forge~ connects Magit directly to Git hosting services (GitHub, GitLab, Gitea), allowing developers to browse, fetch, review, and comment on issues and pull requests entirely inside Emacs without switching to a web browser.
+
+- *Repository*: [[https://github.com/magit/forge][magit/forge on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/forge.html][forge on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package forge
     :after magit)
 #+end_src
 
-*** Git Gutter
-Displays Git diff information in the fringe/margin.
-#+begin_src emacs-lisp :tangle yes
+*** Git Gutter Fringe & Navigation Hydra
+
+~git-gutter-fringe~ displays real-time diff indicators (added, modified, deleted lines) in the Emacs window fringe. It includes commands to navigate between modified hunks, stage them individually, revert them, or view diffs inline.
+
+We bind standard Git prefix keys (~C-x v ...~) and a dedicated Hydra on ~C-x v h~ for rapid hunk jumping, inspection, and staging.
+
+- *Repository*: [[https://github.com/emacsorphanage/git-gutter-fringe][emacsorphanage/git-gutter-fringe on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/git-gutter-fringe.html][git-gutter-fringe on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package git-gutter-fringe
     :diminish git-gutter-mode
     :hook ((text-mode . git-gutter-mode)
@@ -1747,20 +1958,31 @@ Displays Git diff information in the fringe/margin.
       ("Q" (progn (git-gutter-mode -1) (sit-for 0.1) (git-gutter:clear)) :color blue)))
 #+end_src
 
-*** Git Timemachine
-Step through historic versions of a file.
-#+begin_src emacs-lisp :tangle yes
+*** Git Timemachine: Interactive File History
+
+~git-timemachine~ allows stepping forward and backward through all git revisions of the currently visited file, displaying the commit date, author, and commit message directly in the header line.
+
+- *Repository*: [[https://github.com/emacsmirror/git-timemachine][emacsmirror/git-timemachine on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/git-timemachine.html][git-timemachine on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package git-timemachine
     :bind ("C-c m t" . git-timemachine))
 #+end_src
 
-*** Git-link
-#+BEGIN_SRC emacs-lisp :tangle  yes
+*** Git Link: Shareable Permalinks
+
+~git-link~ generates a web permalink to the current file and line on GitHub, GitLab, Bitbucket, or Codeberg, automatically copying the URL to the kill-ring and opening it in the system browser.
+
+- *Repository*: [[https://github.com/sshaw/git-link][sshaw/git-link on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/git-link.html][git-link on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package git-link
     :bind ("C-c m G" . git-link)
     :config
     (setq git-link-open-in-browser t))
-#+END_SRC
+#+end_src
 
 * LaTeX
 ** AUCTeX Core
