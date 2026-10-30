@@ -372,6 +372,27 @@ Here, we configure ~zoom~ to scale the active window according to the golden rat
            ("C-a"   . crux-move-beginning-of-line)))
 #+end_src
 
+*** Moving Lines & Selected Regions with drag-stuff
+
+~drag-stuff~ provides an intuitive way to drag lines, words, or selected active regions up and down while automatically maintaining proper syntax indentation. It is particularly effective for rearranging items in LaTeX lists, mathematical calculation steps, or reordering code statements without having to kill and yank.
+
+- ~M-<up>~ (~drag-stuff-up~): Moves the current line or active region up by one line.
+- ~M-<down>~ (~drag-stuff-down~): Moves the current line or active region down by one line.
+- Org-mode exclusion: To prevent overriding Org-mode's native hierarchical subtree and item manipulation commands (~org-metaup~ / ~org-metadown~), ~org-mode~ is explicitly added to ~drag-stuff-except-modes~.
+
+- *Repository*: [[https://github.com/rejeep/drag-stuff.el][rejeep/drag-stuff.el on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/drag-stuff.html][drag-stuff on MELPA]]
+
+#+begin_src emacs-lisp
+  (use-package drag-stuff
+    :bind (("M-<up>"   . drag-stuff-up)
+           ("M-<down>" . drag-stuff-down))
+    :config
+    (drag-stuff-global-mode 1)
+    ;; Exclude Org mode so native org-metaup and org-metadown remain unhindered
+    (add-to-list 'drag-stuff-except-modes 'org-mode))
+#+end_src
+
 *** Fast Cursor Navigation with avy
 
 ~avy~ allows jumping directly to any visible character, word, or line across open windows using a binary tree-based character overlay prompt. Instead of repeated arrow keys or searching, jump targets are reached in 2–3 keystrokes.
