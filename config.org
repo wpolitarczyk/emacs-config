@@ -1374,24 +1374,60 @@ Lightning-fast project-wide search using Ripgrep
 #+end_src
 
 * Projectile
-Project management and seamless navigation across directories.
-#+begin_src emacs-lisp :tangle yes
+:PROPERTIES:
+:header-args: :tangle yes
+:END:
+
+~projectile~ is a comprehensive project interaction library created by Bozhidar Batsov. It automatically detects project boundaries based on version control markers (~.git~, ~.hg~), build configuration files (~Makefile~, ~Cargo.toml~, ~package.json~), or custom marker files (~.projectile~).
+
+It facilitates swift, project-oriented navigation without manual path traversal:
+- Jump to any file in the current project (~s-p f~ or ~C-c p f~).
+- Switch between active projects (~s-p p~).
+- Search the entire workspace using Ripgrep (~s-p s r~).
+- Run project compile, test, and run commands (~s-p c~, ~s-p t~, ~s-p P~).
+- Switch between code implementations and their associated test files (~s-p a~).
+
+- *Repository*: [[https://github.com/bbatsov/projectile][bbatsov/projectile on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/projectile.html][projectile on MELPA]]
+- *Manual*: [[https://docs.projectile.mx/][Projectile Official Documentation]]
+
+** Core Setup & Performance
+
+- **Keybindings**: Bound to both ~C-c p~ (cross-platform standard) and ~s-p~ (~Command-p~ on macOS) to match standard modern editor muscle memory.
+- ~projectile-completion-system 'default~: Configures Projectile to use Emacs' standard ~completing-read~ API, allowing it to seamlessly leverage our modern **Vertico + Orderless + Marginalia** completion stack without requiring adapter packages.
+- ~projectile-indexing-method 'alien~: Delegates file discovery to high-speed external tools (~git ls-files~, ~fd~, ~find~) rather than slow recursive Lisp traversals, providing near-instant file listing even in massive repositories.
+- ~projectile-sort-order 'recentf~: Promotes recently visited project files to the top of search candidate lists.
+
+#+begin_src emacs-lisp
   (use-package projectile
     :demand t
     :bind-keymap
     ("C-c p" . projectile-command-map)
     ("s-p"   . projectile-command-map) ; Command-p for macOS users
+    :custom
+    ;; Use standard completing-read (seamless Vertico + Orderless integration)
+    (projectile-completion-system 'default)
+    ;; Use external tools (git, fd) for lightning-fast indexing on large codebases
+    (projectile-indexing-method 'alien)
+    ;; Prioritize recently opened project files at the top of find-file lists
+    (projectile-sort-order 'recentf)
     :config
-    ;; Enable Projectile globally after the package is loaded
+    ;; Enable Projectile globally
     (projectile-mode 1))
 #+end_src
 
-#+begin_src emacs-lisp :tangle no
-  ;; Integrate Projectile with Helm for fuzzy finding
+** Archived Helm Integration (Inactive)
+:PROPERTIES:
+:header-args: :tangle no
+:END:
+
+When Helm was used as the primary completion framework, ~helm-projectile~ provided customized fuzzy-matching menus. Now that we have migrated to the modern Vertico and native ~completing-read~ architecture, this package is no longer tangled or loaded.
+
+#+begin_src emacs-lisp
+  ;; Integrate Projectile with Helm for fuzzy finding (Archived)
   (use-package helm-projectile
     :after (projectile helm)
     :config
-    ;; Replace standard Projectile prompts with Helm interfaces
     (helm-projectile-on))
 #+end_src
 
