@@ -1,15 +1,51 @@
-* Packages
-#+begin_src emacs-lisp :tangle yes
+* Package Management
+:PROPERTIES:
+:header-args: :tangle yes
+:END:
+
+This section establishes the package management infrastructure for Emacs. A reliable and declarative package manager ensures that all external libraries, themes, and language modes are automatically resolved, downloaded, and configured cleanly across different environments.
+
+** Package Archives & MELPA
+
+Emacs includes ~package.el~ as its standard package management client. By default, Emacs connects to GNU ELPA (and NonGNU ELPA in modern Emacs versions). To access the broader community ecosystem of Emacs packages, we register *Milkypostman's Emacs Lisp Package Archive* (MELPA).
+
+- *Homepage*: [[https://melpa.org/][MELPA Official Site]]
+- *Repository*: [[https://github.com/melpa/melpa][melpa/melpa on GitHub]]
+
+#+begin_src emacs-lisp
   (require 'package)
 
-  ;; Repository configuration - adding only MELPA
+  ;; Repository configuration - adding MELPA
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+#+end_src
 
+** Declarative Configuration with use-package
+
+~use-package~ provides a macro-based Domain-Specific Language (DSL) for declaring package configurations. It simplifies management by:
+- Organizing package initialization (~:init~), configuration (~:config~), and keybindings (~:bind~).
+- Enabling deferred (lazy) loading to optimize startup time.
+- Handling conditional loading based on system types or installed tools.
+
+Starting with Emacs 29.1, ~use-package~ is built directly into GNU Emacs core, so there is no need to install it from external repositories.
+
+- *Upstream Repository*: [[https://github.com/jwiegley/use-package][jwiegley/use-package on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/use-package.html][use-package on MELPA]]
+- *Manual*: [[https://www.gnu.org/software/emacs/manual/html_mono/use-package.html][GNU Emacs use-package Manual]]
+
+#+begin_src emacs-lisp
   ;; Initialize built-in use-package (Emacs 29+)
   (require 'use-package)
+#+end_src
 
+** Automatic Package Installation
+
+By default, ~use-package~ requires an explicit ~:ensure t~ directive on each block to trigger automatic package downloads. Setting ~use-package-always-ensure~ to ~t~ globally inverts this default so that any declared package is automatically installed from configured archives unless marked with ~:ensure nil~ (which we reserve for built-in Emacs features like ~dired~ or ~savehist~).
+
+This makes bootstrapping this configuration on a fresh computer completely automatic.
+
+#+begin_src emacs-lisp
   ;; Global setting ensuring that (use-package package-name) 
-  ;; automatically downloads and installs it, eliminating the need to write ":ensure t" in every block.
+  ;; automatically downloads and installs it without needing ":ensure t" in every block.
   (setq use-package-always-ensure t)
 #+end_src
 
