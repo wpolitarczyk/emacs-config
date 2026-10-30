@@ -4,11 +4,12 @@ EMACS ?= emacs
 DESTDIR ?=
 TARGET_DIR ?= $(DESTDIR)$(HOME)/.emacs.d
 
-SRC_ORG      := config.org
-GEN_EL       := config.el
-GEN_ELC      := config.elc
-INIT_EL      := init.el
-SNIPPETS_DIR := snippets
+SRC_ORG         := config.org
+GEN_EL          := config.el
+GEN_ELC         := config.elc
+INIT_EL         := init.el
+KEYBINDINGS_ORG := keybindings.org
+SNIPPETS_DIR    := snippets
 
 .PHONY: all tangle build test test-syntax test-load compile install link symlink clean uninstall help
 
@@ -48,13 +49,14 @@ test-load: $(GEN_EL)
 		--eval '(load-file "$<")' \
 		--eval '(message "Load test PASSED: $< loaded cleanly.")'
 
-# Install files to ~/.emacs.d (copies init.el, config.org, config.el, and snippets)
-install: $(GEN_EL)
+# Install files to ~/.emacs.d (copies init.el, config.org, config.el, keybindings.org, and snippets)
+install: $(GEN_EL) $(KEYBINDINGS_ORG)
 	@echo "Installing configuration to $(TARGET_DIR)..."
 	mkdir -p $(TARGET_DIR)
 	cp -f $(INIT_EL) $(TARGET_DIR)/$(INIT_EL)
 	cp -f $(SRC_ORG) $(TARGET_DIR)/$(SRC_ORG)
 	cp -f $(GEN_EL) $(TARGET_DIR)/$(GEN_EL)
+	cp -f $(KEYBINDINGS_ORG) $(TARGET_DIR)/$(KEYBINDINGS_ORG)
 	@if [ -f private.el ] && [ ! -f $(TARGET_DIR)/private.el ]; then \
 		cp -f private.el $(TARGET_DIR)/private.el; \
 		echo "Installed private.el to $(TARGET_DIR)/private.el"; \
@@ -64,12 +66,13 @@ install: $(GEN_EL)
 	@echo "Installation complete."
 
 # Symlink files to ~/.emacs.d (useful for active development in repo)
-link symlink: $(GEN_EL)
+link symlink: $(GEN_EL) $(KEYBINDINGS_ORG)
 	@echo "Symlinking configuration to $(TARGET_DIR)..."
 	mkdir -p $(TARGET_DIR)
 	ln -sf $(CURDIR)/$(INIT_EL) $(TARGET_DIR)/$(INIT_EL)
 	ln -sf $(CURDIR)/$(SRC_ORG) $(TARGET_DIR)/$(SRC_ORG)
 	ln -sf $(CURDIR)/$(GEN_EL) $(TARGET_DIR)/$(GEN_EL)
+	ln -sf $(CURDIR)/$(KEYBINDINGS_ORG) $(TARGET_DIR)/$(KEYBINDINGS_ORG)
 	ln -sfn $(CURDIR)/$(SNIPPETS_DIR) $(TARGET_DIR)/$(SNIPPETS_DIR)
 	@if [ -f $(CURDIR)/private.el ] && [ ! -e $(TARGET_DIR)/private.el ]; then \
 		ln -sf $(CURDIR)/private.el $(TARGET_DIR)/private.el; \
@@ -86,7 +89,7 @@ clean:
 # Remove installed files from target directory
 uninstall:
 	@echo "Uninstalling files from $(TARGET_DIR)..."
-	rm -f $(TARGET_DIR)/$(INIT_EL) $(TARGET_DIR)/$(SRC_ORG) $(TARGET_DIR)/$(GEN_EL)
+	rm -f $(TARGET_DIR)/$(INIT_EL) $(TARGET_DIR)/$(SRC_ORG) $(TARGET_DIR)/$(GEN_EL) $(TARGET_DIR)/$(KEYBINDINGS_ORG)
 	@if [ -L $(TARGET_DIR)/$(SNIPPETS_DIR) ]; then \
 		rm -f $(TARGET_DIR)/$(SNIPPETS_DIR); \
 		echo "Removed symlinked snippets directory."; \
