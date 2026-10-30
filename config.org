@@ -1,3 +1,5 @@
+#+PROPERTY: header-args :tangle yes
+
 * Package Management
 :PROPERTIES:
 :header-args: :tangle yes
@@ -1339,6 +1341,7 @@ The combination of ~consult~, ~embark-consult~, and ~wgrep~ provides a project-w
 #+begin_src emacs-lisp
   (use-package embark-consult
     :after (embark consult)
+    :demand t
     :hook
     (embark-collect-mode . consult-preview-at-point-mode))
 
@@ -1411,6 +1414,9 @@ When Helm was used as the primary completion framework, ~helm-projectile~ provid
 #+end_src
 
 * Programming
+:PROPERTIES:
+:header-args: :tangle yes
+:END:
 
 A comprehensive development environment integrating language servers, code completion, structured editing, mathematical computing tools, and Git version control workflows.
 
@@ -1964,6 +1970,9 @@ We bind standard Git prefix keys (~C-x v ...~) and a dedicated Hydra on ~C-x v h
 #+end_src
 
 * LaTeX
+:PROPERTIES:
+:header-args: :tangle yes
+:END:
 
 A modern, high-efficiency academic writing environment for LaTeX and BibTeX. Features AUCTeX with PDF-Tools SyncTeX synchronization, RefTeX with Vertico-native citation selection, Citar bibliography management, and language server diagnostics.
 
@@ -2284,6 +2293,9 @@ Because its automated pair expansions can occasionally overlap with ~smartparens
 #+end_src
 
 * Org-mode
+:PROPERTIES:
+:header-args: :tangle yes
+:END:
 
 A versatile system for organizing notes, managing projects and Getting Things Done (GTD) workflows, scheduling appointments with dynamic Agenda views, annotating electronic publications (PDF, EPUB, DjVu), and conducting literate programming with Org-Babel.
 
@@ -2590,6 +2602,9 @@ Enables active execution for Emacs Lisp, Python, SQLite, R, Shell scripts, and A
 #+end_src
 
 * Yasnippet
+:PROPERTIES:
+:header-args: :tangle yes
+:END:
 
 A template expansion system for Emacs that dramatically accelerates coding, document authoring, and repetitive boilerplate entry. By typing a brief mnemonic abbreviation and pressing the expansion key, YASnippet replaces the keyword with a structured template containing tab stops, placeholder defaults, mirrored fields, and embedded Elisp transformations.
 
@@ -2679,6 +2694,9 @@ A convenient transient menu for creating, editing, exploring, and reloading snip
     ("q" nil "Quit" :color blue))
 #+end_src
 * Flycheck
+:PROPERTIES:
+:header-args: :tangle yes
+:END:
 
 An on-the-fly syntax checking and linting framework for GNU Emacs. Flycheck continuously analyzes source code in the background using external linters, static analysis tools, and compilers (such as ShellCheck, ChkTeX, Ruff, Flake8, and GCC/Clang), highlighting errors and warnings directly in the buffer fringe and text. It also seamlessly receives diagnostics from active Language Server Protocol (~lsp-mode~) sessions.
 
@@ -2771,6 +2789,9 @@ A transient menu bound to ~C-c ! h~ that facilitates rapid diagnostic navigation
     (define-key flycheck-command-map (kbd "h") #'hydra-flycheck/body))
 #+end_src
 * Flyspell
+:PROPERTIES:
+:header-args: :tangle yes
+:END:
 
 An on-the-fly interactive spell checking environment for prose, academic writing, and programming comments. Flyspell highlights misspelled words in real time and provides rapid in-minibuffer correction interfaces without taking your hands off the keyboard.
 
@@ -2890,6 +2911,9 @@ A rapid-access transient menu bound to ~C-c f h~ for jumping across misspelled w
 #+end_src
 
 * Writeroom
+:PROPERTIES:
+:header-args: :tangle yes
+:END:
 
 A distraction-free writing environment for GNU Emacs inspired by WriteRoom for macOS. When enabled, ~writeroom-mode~ centers the text buffer, applies comfortable margins, disables line numbers, and hides extraneous UI elements to facilitate deep focus during prose composition and academic drafting.
 

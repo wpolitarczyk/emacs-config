@@ -16,7 +16,11 @@
 (when (or (not (file-exists-p my-config-el))
           (file-newer-than-file-p my-config-org my-config-el))
   (require 'org)
-  (org-babel-load-file my-config-org))
+  (org-babel-tangle-file my-config-org my-config-el "\\`\\(?:e\\(?:\\(?:macs-\\)?lisp\\)\\)\\'")
+  (let ((tangled-source (concat (file-name-sans-extension (file-truename my-config-org)) ".el")))
+    (when (and (file-exists-p tangled-source)
+               (not (string= (file-truename my-config-el) (file-truename tangled-source))))
+      (copy-file tangled-source my-config-el t))))
 
 ;; Wczytaj wygenerowany plik (bardzo szybka operacja, bez angażowania org-mode)
 (load-file my-config-el)

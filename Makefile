@@ -64,11 +64,12 @@ install: $(GEN_EL)
 	@echo "Installation complete."
 
 # Symlink files to ~/.emacs.d (useful for active development in repo)
-link symlink:
+link symlink: $(GEN_EL)
 	@echo "Symlinking configuration to $(TARGET_DIR)..."
 	mkdir -p $(TARGET_DIR)
 	ln -sf $(CURDIR)/$(INIT_EL) $(TARGET_DIR)/$(INIT_EL)
 	ln -sf $(CURDIR)/$(SRC_ORG) $(TARGET_DIR)/$(SRC_ORG)
+	ln -sf $(CURDIR)/$(GEN_EL) $(TARGET_DIR)/$(GEN_EL)
 	ln -sfn $(CURDIR)/$(SNIPPETS_DIR) $(TARGET_DIR)/$(SNIPPETS_DIR)
 	@if [ -f $(CURDIR)/private.el ] && [ ! -e $(TARGET_DIR)/private.el ]; then \
 		ln -sf $(CURDIR)/private.el $(TARGET_DIR)/private.el; \
