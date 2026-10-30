@@ -431,9 +431,44 @@ Emacs 28+ natively includes explicit ~undo-only~ and ~undo-redo~ commands, elimi
 #+end_src
 
 * Appearance
-** Themes
-Download required themes
-#+begin_src emacs-lisp :tangle yes
+:PROPERTIES:
+:header-args: :tangle yes
+:END:
+
+This section configures the visual presentation of Emacs to ensure an aesthetic, distraction-free, and legible environment. It covers color themes and automatic circadian day/night switching, typography defaults, a unified modern Nerd Font icon ecosystem, minimalist UI chrome, spatial window navigation via Windmove, performant native line numbers, and a customized startup Dashboard.
+
+** Themes & Automatic Circadian Switching
+
+*** Theme Collection
+
+A curated selection of modern light and dark themes suited for different lighting environments and display types. All themes are defined with ~:defer t~ so they are downloaded via ~use-package~ without being activated immediately at startup; theme activation is delegated to the ~circadian~ scheduler.
+
+- **Zenburn**: Classic low-contrast, warm dark theme designed to be gentle on tired eyes.
+  - *Repository*: [[https://github.com/bbatsov/zenburn-emacs][bbatsov/zenburn-emacs on GitHub]]
+  - *MELPA Page*: [[https://melpa.org/packages/zenburn-theme.html][zenburn-theme on MELPA]]
+- **Obsidian**: High-contrast dark theme inspired by the Obsidian text editor.
+  - *Repository*: [[https://github.com/fmarier/obsidian-theme][fmarier/obsidian-theme on GitHub]]
+  - *MELPA Page*: [[https://melpa.org/packages/obsidian-theme.html][obsidian-theme on MELPA]]
+- **Anti-Zenburn**: Clean low-contrast light theme, creating an inverted light companion to Zenburn.
+  - *Repository*: [[https://github.com/m00natic/anti-zenburn-theme][m00natic/anti-zenburn-theme on GitHub]]
+  - *MELPA Page*: [[https://melpa.org/packages/anti-zenburn-theme.html][anti-zenburn-theme on MELPA]]
+- **Cloud**: Soft, airy light theme with gentle pastel syntax highlighting.
+  - *Repository*: [[https://github.com/aaronbieber/cloud-theme][aaronbieber/cloud-theme on GitHub]]
+  - *MELPA Page*: [[https://melpa.org/packages/cloud-theme.html][cloud-theme on MELPA]]
+- **E-Ink**: High-contrast monochrome theme engineered specifically for outdoor visibility and e-ink displays.
+  - *Repository*: [[https://github.com/mahmoodsh/eink-theme][mahmoodsh/eink-theme on GitHub]]
+  - *MELPA Page*: [[https://melpa.org/packages/eink-theme.html][eink-theme on MELPA]]
+- **Guava Themes**: Vibrant, nature-inspired modern color palettes including Jacaranda, Psidium, and Cordyline.
+  - *Repository*: [[https://github.com/jasonm23/guava-themes][jasonm23/guava-themes on GitHub]]
+  - *MELPA Page*: [[https://melpa.org/packages/guava-themes.html][guava-themes on MELPA]]
+- **Timu macOS**: Modern theme modeled after native macOS Big Sur / Monterey interface aesthetics.
+  - *Repository*: [[https://gitlab.com/monkeyjunglejuice/timu-macos-theme][monkeyjunglejuice/timu-macos-theme on GitLab]]
+  - *MELPA Page*: [[https://melpa.org/packages/timu-macos-theme.html][timu-macos-theme on MELPA]]
+- **Catppuccin**: Widely acclaimed pastel palette designed for readability, configured here with the light "Latte" flavor.
+  - *Repository*: [[https://github.com/catppuccin/emacs][catppuccin/emacs on GitHub]]
+  - *MELPA Page*: [[https://melpa.org/packages/catppuccin-theme.html][catppuccin-theme on MELPA]]
+
+#+begin_src emacs-lisp
   ;; Download themes without loading them immediately (circadian handles the loading)
   (use-package zenburn-theme :defer t)
   (use-package obsidian-theme :defer t)
@@ -453,8 +488,14 @@ Download required themes
     (catppuccin-flavor 'latte))
 #+end_src
 
-Configure circadian (automatic theme switching based on time)
-#+begin_src emacs-lisp :tangle yes
+*** Circadian Theme Scheduling
+
+~circadian~ automatically switches Emacs themes throughout the day according to a predefined schedule (or solar sunrise/sunset times), smoothly transitioning from bright daylight palettes to warmer, low-contrast dark themes as evening approaches.
+
+- *Repository*: [[https://github.com/guidoschmidt/circadian.el][guidoschmidt/circadian.el on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/circadian.html][circadian on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package circadian
     :custom
     (circadian-themes '(("9:00"  . guava-themes-jacaranda)
@@ -467,98 +508,141 @@ Configure circadian (automatic theme switching based on time)
 #+end_src
 
 ** Typography
-Set the default font size
-#+begin_src emacs-lisp :tangle yes
+
+Sets the default typeface size across all Emacs frames. In Emacs, face heights are measured in tenths of a point, so ~:height 120~ corresponds to a comfortable 12pt font size.
+
+#+begin_src emacs-lisp
   (set-face-attribute 'default nil :height 120)
 #+end_src
 
-** Icons
-Nerd icons for the tab line
-#+BEGIN_SRC emacs-lisp :tangle yes
+** Unified Icon Ecosystem (Nerd Icons)
+
+Modern Emacs configurations favor **`nerd-icons`** over legacy icon packages like `all-the-icons`. 
+
+- **Cross-platform**: Works consistently in both graphical GUI frames and terminal (TTY) Emacs instances.
+- **Single Font Dependency**: Uses standardized Nerd Font glyphs (e.g. *Symbols Nerd Font Mono*), eliminating the need to install five separate proprietary icon font files.
+- **Unified**: Replaces `all-the-icons` across Dired, the tab line, and the startup Dashboard.
+
+*Note:* On a fresh machine or new font installation, run ~M-x nerd-icons-install-fonts~ once to ensure glyphs render correctly.
+
+- **nerd-icons**: [[https://github.com/rainstormstudio/nerd-icons.el][rainstormstudio/nerd-icons.el on GitHub]] | [[https://melpa.org/packages/nerd-icons.html][nerd-icons on MELPA]]
+- **nerd-icons-dired**: [[https://github.com/rainstormstudio/nerd-icons-dired][rainstormstudio/nerd-icons-dired on GitHub]] | [[https://melpa.org/packages/nerd-icons-dired.html][nerd-icons-dired on MELPA]]
+- **tab-line-nerd-icons**: [[https://github.com/aaronjensen/tab-line-nerd-icons][aaronjensen/tab-line-nerd-icons on GitHub]] | [[https://melpa.org/packages/tab-line-nerd-icons.html][tab-line-nerd-icons on MELPA]]
+
+#+begin_src emacs-lisp
+  ;; Unified Nerd Font icon provider
+  (use-package nerd-icons)
+
+  ;; File and folder icons in Dired buffers
+  (use-package nerd-icons-dired
+    :hook (dired-mode . nerd-icons-dired-mode))
+
+  ;; Tab-line buffer icons
   (use-package tab-line-nerd-icons
     :config
     (tab-line-nerd-icons-global-mode 1))
-#+END_SRC
+#+end_src
 
-Install and configure all-the-icons
-#+BEGIN_SRC emacs-lisp :tangle yes
-  (use-package all-the-icons)
+** Minimalist UI Chrome
 
-  (use-package all-the-icons-dired
-    :if (display-graphic-p)
-    :hook (dired-mode . all-the-icons-dired-mode))
-#+END_SRC
-(Note: If you haven't done so on your current machine, remember to run M-x all-the-icons-install-fonts and M-x nerd-icons-install-fonts once to ensure the icons display properly!)
+Disables unnecessary graphical interface elements to maximize screen real estate and reduce visual clutter:
 
-** UI Elements
+- ~tool-bar-mode -1~: Removes the graphical toolbar icons at the top of the window.
+- ~tooltip-mode -1~: Forces help tooltips and docstrings to render in the minibuffer/echo area instead of distracting OS popup bubbles.
 
-Disable unnecessary graphical elements to save screen space
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
+  ;; Disable the graphical toolbar to reclaim vertical screen space
   (tool-bar-mode -1)
-  
-  ;; Optional: You can also disable the scrollbar and menubar if you want a cleaner look
+
+  ;; Display tooltips in the echo area rather than in floating system windows
+  (tooltip-mode -1)
+
+  ;; Optional: Uncomment to disable the scrollbar and menubar for an ultra-minimal look
   ;; (scroll-bar-mode -1)
   ;; (menu-bar-mode -1)
 #+end_src
-** Window movement
 
-Enable directional window navigation using Shift/Alt + Arrow keys
-#+begin_src emacs-lisp :tangle yes
+** Directional Window Navigation (Windmove)
+
+Built into Emacs core, ~windmove~ allows effortless spatial navigation between split windows using directional arrow keys combined with a modifier key.
+
+- Configured with ~windmove-wrap-around t~ so navigating past the edge of the frame wraps around to the opposite side.
+- Bound to ~Alt~ + Arrow keys (mapped to macOS Option).
+
+- *Manual*: [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Window-Convenience.html][GNU Emacs Windmove Manual]]
+
+#+begin_src emacs-lisp
   (use-package windmove
-    :ensure nil ; Built-in package, do not download from MELPA
+    :ensure nil ; Built into Emacs core
     :custom
     (windmove-wrap-around t)
     :config
-    ;; On macOS, the Option key is mapped to 'alt' based on our previous modifier settings
+    ;; Map directional navigation to Alt (Option) + Arrow keys
     (windmove-default-keybindings 'alt))
 #+end_src
-** Line numbers
 
-Enable line numbers for text and programming modes
-#+begin_src emacs-lisp :tangle yes
-  ;; Enable line numbers for plain text, markdown, and org files
+** Native Line Numbers (display-line-numbers-mode)
+
+Emacs 26+ provides a high-performance C-level line numbering engine (~display-line-numbers-mode~) that replaces the slow, legacy Emacs Lisp overlay package (~linum-mode~).
+
+- Enabled via hooks for all programming languages (~prog-mode~) and prose/writing documents (~text-mode~).
+- ~display-line-numbers-width-start t~: Precalculates the line number margin width to prevent subtle horizontal text shifting as line counts increase.
+
+#+begin_src emacs-lisp
+  ;; Precalculate line number column width to prevent text jitter on large files
+  (setq-default display-line-numbers-width-start t)
+
+  ;; Enable line numbers for prose and text editing (Markdown, Org, LaTeX)
   (add-hook 'text-mode-hook #'display-line-numbers-mode)
 
-  ;; Enable line numbers for all programming languages (Python, LaTeX, etc.)
+  ;; Enable line numbers for all programming language modes
   (add-hook 'prog-mode-hook #'display-line-numbers-mode)
 #+end_src
 
-** Dashboard
+** Extensible Startup Dashboard (dashboard)
 
-Documentation: [[https://github.com/emacs-dashboard/emacs-dashboard][GitHub - emacs-dashboard/emacs-dashboard: An extensible emacs dashboard]]
-#+begin_src emacs-lisp :tangle yes
+~dashboard~ replaces the default Emacs splash screen with an informative, keyboard-accessible home dashboard displaying recent files, active project bookmarks, and startup metrics.
+
+- Configured to use **`nerd-icons`** for all section headings, file items, and navigation buttons.
+- Includes quick-launch shortcut buttons to open ~config.org~, reload the configuration, or inspect registered Hydras.
+
+- *Repository*: [[https://github.com/emacs-dashboard/emacs-dashboard][emacs-dashboard/emacs-dashboard on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/dashboard.html][dashboard on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package dashboard
     :custom
     (dashboard-startup-banner 'logo)
     (dashboard-center-content t)
-    
-    ;; 1. Personalized text
+
+    ;; Personalized greeting and inspirational tagline
     (dashboard-banner-logo-title (format "Welcome back, %s. Your Emacs is ready." (capitalize user-login-name)))
     (dashboard-footer-messages '("May the source be with you." "Happy hacking!"))
-    
-    ;; 2. Show startup time (great for tracking our optimization progress!)
+
+    ;; Display startup time and package count
     (dashboard-set-init-info t)
-    
-    ;; 3. Added the agenda back in
+
+    ;; Dashboard sections and item counts
     (dashboard-items '((recents   . 10)
                        (projects  . 5)
                        (bookmarks . 8)))
-                       
-    ;; 4. Navigator buttons for your custom functions
-    (dashboard-navigator-buttons
-     `(;; First row
-       ((,(all-the-icons-octicon "tools" :height 1.1 :v-adjust 0.0)
-         "Config" "Open configuration" (lambda (&rest _) (show-init-file)))
-        (,(all-the-icons-faicon "refresh" :height 1.1 :v-adjust 0.0)
-         "Reload" "Reload configuration" (lambda (&rest _) (reload-init)))
-        (,(all-the-icons-faicon "keyboard-o" :height 1.1 :v-adjust 0.0)
-         "Hydras" "List defined Hydras" (lambda (&rest _) (my/list-config-hydras)))
-        )))
 
-    (dashboard-icon-type 'all-the-icons)
+    ;; Enable unified Nerd Font icons
+    (dashboard-display-icons-p t)
+    (dashboard-icon-type 'nerd-icons)
     (dashboard-set-heading-icons t)
     (dashboard-set-file-icons t)
     (dashboard-set-navigator t)
+
+    ;; Navigator shortcut buttons using nerd-icons
+    (dashboard-navigator-buttons
+     `(;; First row
+       ((,(nerd-icons-octicon "nf-oct-tools" :height 1.1 :v-adjust 0.0)
+         "Config" "Open configuration" (lambda (&rest _) (show-init-file)))
+        (,(nerd-icons-faicon "nf-fa-refresh" :height 1.1 :v-adjust 0.0)
+         "Reload" "Reload configuration" (lambda (&rest _) (reload-init)))
+        (,(nerd-icons-faicon "nf-fa-keyboard_o" :height 1.1 :v-adjust 0.0)
+         "Hydras" "List defined Hydras" (lambda (&rest _) (my/list-config-hydras))))))
     :config
     (dashboard-setup-startup-hook)
     (setq initial-buffer-choice (lambda () (get-buffer-create "*dashboard*"))))
