@@ -21,6 +21,9 @@ Emacs includes ~package.el~ as its standard package management client. By defaul
 
   ;; Repository configuration - adding MELPA
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+
+  ;; Initialize and activate installed packages into load-path
+  (package-initialize)
 #+end_src
 
 ** Declarative Configuration with use-package
@@ -140,7 +143,17 @@ Quick helper functions to reload or open the configuration without having to man
   (defun reload-init ()
     "Update and reload configuration from the config.org file."
     (interactive)
-    (org-babel-load-file (expand-file-name "config.org" user-emacs-directory)))
+    (package-initialize)
+    (let ((org-file (expand-file-name "config.org" user-emacs-directory))
+          (el-file (expand-file-name "config.el" user-emacs-directory)))
+      (require 'org)
+      (org-babel-tangle-file org-file el-file "\\`\\(?:e\\(?:\\(?:macs-\\)?lisp\\)\\)\\'")
+      (let ((tangled-source (concat (file-name-sans-extension (file-truename org-file)) ".el")))
+        (when (and (file-exists-p tangled-source)
+                   (not (string= (file-truename el-file) (file-truename tangled-source))))
+          (copy-file tangled-source el-file t)))
+      (load-file el-file)
+      (message "Configuration reloaded successfully!")))
 
   (defun show-init-file ()
     "Open the configuration file for editing."
@@ -2320,8 +2333,8 @@ Because its automated pair expansions can occasionally overlap with ~smartparens
 ~laas~ (LaTeX Auto Activating Snippets) leverages ~yasnippet~ and ~aas~ to automatically expand mathematical shorthand and fractions without requiring a ~TAB~ press, active strictly while inside LaTeX math environments (~$...$~, ~\[...\]~).
 
 Key capabilities:
-- ~//~ automatically expands into ~\frac{...}{...}~ with active tab stops.
-- Mathematical functions (~supp~ -> ~\supp~, ~On~ -> ~O(n)~, ~dint~ -> ~\int_{...}^{...}~).
+- Mathematical functions (~supp~ -> ~\supp~, ~On~ -> ~O(n)~, ~Olog~ -> ~O(\log n)~, ~Olon~ -> ~O(n \log n)~).
+- Smart fractions: Typing ~/~ after an expression in math mode automatically wraps it into ~\frac{...}{}~ via ~laas-smart-fraction~.
 - Requires ~math-symbol-lists~ for symbol definitions.
 
 - *Repository*: [[https://github.com/tecosaur/LaTeX-auto-activating-snippets][tecosaur/LaTeX-auto-activating-snippets on GitHub]]
@@ -2341,8 +2354,7 @@ Key capabilities:
       "On" "O(n)"
       "O1" "O(1)"
       "Olog" "O(\\log n)"
-      "Olon" "O(n \\log n)"
-      "//" (lambda () (interactive) (yas-expand-snippet "\\frac{$1}{$2}$0"))))
+      "Olon" "O(n \\log n)"))
 #+end_src
 
 * Org-mode
