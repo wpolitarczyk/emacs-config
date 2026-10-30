@@ -36,12 +36,7 @@ test: test-syntax compile
 # Fast syntax check: verifies balanced parentheses and valid Elisp reader syntax
 test-syntax: $(GEN_EL)
 	@echo "Checking syntax of $<..."
-	@$(EMACS) -Q --batch --eval '\
-	(with-temp-buffer \
-	  (insert-file-contents "$<") \
-	  (condition-case err \
-	      (while t (read (current-buffer))) \
-	    (end-of-file (message "Syntax check PASSED: $< is well-formed Elisp."))))'
+	@$(EMACS) -Q --batch --eval '(with-temp-buffer (insert-file-contents "$<") (condition-case err (while t (read (current-buffer))) (end-of-file (message "Syntax check PASSED: $< is well-formed Elisp."))))'
 
 # Batch load test: initializes packages and loads config.el
 test-load: $(GEN_EL)
