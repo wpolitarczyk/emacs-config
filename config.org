@@ -201,14 +201,23 @@ Additionally, an auto-save hook on ~focus-out-hook~ automatically saves modified
 
 Emacs 27+ includes a native tab bar system (~tab-bar-mode~), where each tab represents a distinct window layout (comparable to workspaces or virtual desktops in other editors).
 
-- ~tab-bar-history-mode~: Tracks the history of window configurations within each tab, allowing seamless undo and redo of window layout changes (splits, closures, and resizes) via ~M-[~ and ~M-]~.
+- ~tab-bar-history-mode~: Tracks the history of window configurations within each tab, allowing seamless undo and redo of window layout changes (splits, closures, and resizes) via ~Cmd+[~ and ~Cmd+]~ (~M-[~ and ~M-]~ on macOS). We guard these keybindings with ~display-graphic-p~ so they only activate in graphical frames, protecting terminal sessions from having ANSI escape sequences (~ESC [~) intercepted.
 
 #+begin_src emacs-lisp
   (tab-bar-mode 1)
   (tab-bar-history-mode 1)
 
-  (global-set-key (kbd "M-[") 'tab-bar-history-back)
-  (global-set-key (kbd "M-]") 'tab-bar-history-forward)
+  ;; Guarded with display-graphic-p to prevent intercepting ANSI CSI escape sequences (ESC [) in terminals
+  (if (daemonp)
+      (add-hook 'after-make-frame-functions
+                (lambda (frame)
+                  (when (display-graphic-p frame)
+                    (with-selected-frame frame
+                      (global-set-key (kbd "M-[") 'tab-bar-history-back)
+                      (global-set-key (kbd "M-]") 'tab-bar-history-forward)))))
+    (when (display-graphic-p)
+      (global-set-key (kbd "M-[") 'tab-bar-history-back)
+      (global-set-key (kbd "M-]") 'tab-bar-history-forward)))
 #+end_src
 
 *** Minibuffer History Persistence (Savehist)
@@ -244,11 +253,12 @@ When running GNU Emacs on macOS (Darwin/NextStep), the default modifier key mapp
 
 *** Global Text Scaling
 
-Quick global keybindings to zoom buffer text in or out interactively.
+Quick global keybindings to zoom buffer text in or out interactively (~C-+~, ~C--~, and ~C-0~ to reset). Note: native negative prefix arguments remain fully accessible via ~M--~ or ~C-u -~.
 
 #+begin_src emacs-lisp
   (global-set-key (kbd "C-+") 'text-scale-increase)
   (global-set-key (kbd "C--") 'text-scale-decrease)
+  (global-set-key (kbd "C-0") (lambda () (interactive) (text-scale-adjust 0)))
 #+end_src
 
 ** Background Emacs Server
@@ -407,16 +417,16 @@ Here, we configure ~zoom~ to scale the active window according to the golden rat
     (add-to-list 'drag-stuff-except-modes 'org-mode))
 #+end_src
 
-*** Fast Cursor Navigation with avy
+*** Fast Cursor Navigation with avy (M-j)
 
-~avy~ allows jumping directly to any visible character, word, or line across open windows using a binary tree-based character overlay prompt. Instead of repeated arrow keys or searching, jump targets are reached in 2–3 keystrokes.
+~avy~ allows jumping directly to any visible character, word, or line across open windows using a binary tree-based character overlay prompt. Bound to ~M-j~ (Jump), leaving Emacs' native ~M-s~ search prefix map intact. Instead of repeated arrow keys or searching, jump targets are reached in 2–3 keystrokes.
 
 - *Repository*: [[https://github.com/abo-abo/avy][abo-abo/avy on GitHub]]
 - *MELPA Page*: [[https://melpa.org/packages/avy.html][avy on MELPA]]
 
 #+begin_src emacs-lisp
   (use-package avy
-    :bind ("M-s" . avy-goto-char-timer)
+    :bind ("M-j" . avy-goto-char-timer)
     :config
     (setq avy-timeout-seconds 0.3))
 #+end_src
@@ -748,8 +758,8 @@ Invoked via ~C-c w~. Provides single-key navigation across window splits using V
     ("d" delete-window "Delete window")
     ("o" delete-other-windows "Delete other window")
 
-    ("b" helm-mini "Helm mini" :column "Switch")
-    ("f" helm-find-files "Find files")
+    ("b" consult-buffer "Consult buffer" :column "Switch")
+    ("f" find-file "Find files")
     ("S" save-buffer "Save")
 
     ("q" nil "Exit" :column "Other" :exit t))
@@ -762,6 +772,7 @@ Invoked via ~C-x t h~. Provides an interactive controller for Emacs 27+ native t
 - **Creation**: Create new tabs (~t~), open Dired in a new tab (~d~), or open a file in a new tab (~f~).
 - **Management**: Close (~0~), move (~m~), or rename (~r~) tabs.
 - **Navigation**: Switch to next (~l~) or previous (~j~) tab, or jump to a tab by name (~<return>~).
+- **History**: Step back (~[~) or forward (~]~) through window configuration history.
 
 #+begin_src emacs-lisp
   (defhydra hydra-tab-bar (:color amaranth)
@@ -775,6 +786,8 @@ Invoked via ~C-x t h~. Provides an interactive controller for Emacs 27+ native t
     ("<return>" tab-bar-select-tab-by-name "Select tab by name" :column "Navigation")
     ("l" tab-next "Next Tab")
     ("j" tab-previous "Previous Tab")
+    ("[" tab-bar-history-back "Back" :column "History")
+    ("]" tab-bar-history-forward "Forward")
     ("q" nil "Exit" :exit t))
 #+end_src
 
@@ -1494,7 +1507,7 @@ Note: Environment variable synchronization (~$PATH~, ~$MANPATH~) across GUI Emac
 
 ~dumb-jump~ is a jump-to-definition package that works without complex indexing or pre-built tags databases. It uses external search backends (~ripgrep~, ~ag~, or ~grep~) with a comprehensive set of regular expressions tailored to over 50 programming languages.
 
-When integrated into Emacs' native ~xref~ system, it serves as an instant definition finder for files outside an active LSP workspace. We bind a dedicated Hydra to smoothly jump to definitions and return.
+When integrated into Emacs' native ~xref~ system, it serves as an instant definition finder for files outside an active LSP workspace, seamlessly accessible via ~M-.~ (~xref-find-definitions~) and ~M-,~ (~xref-go-back~).
 
 - *Repository*: [[https://github.com/jacktasia/dumb-jump][jacktasia/dumb-jump on GitHub]]
 - *MELPA Page*: [[https://melpa.org/packages/dumb-jump.html][dumb-jump on MELPA]]
@@ -1502,26 +1515,19 @@ When integrated into Emacs' native ~xref~ system, it serves as an instant defini
 #+begin_src emacs-lisp
   ;; Jump to definition without complex indexing
   (use-package dumb-jump
-    :after hydra
     :hook (xref-backend-functions . dumb-jump-xref-activate)
     :config
-    (setq xref-show-definitions-function #'xref-show-definitions-completing-read)
-    (defhydra dumb-jump-hydra (:color blue :columns 3)
-      "Dumb Jump"
-      ("j" dumb-jump-go "Go")
-      ("b" dumb-jump-back "Back")
-      ("o" dumb-jump-go-other-window "Other window")
-      ("q" nil "Quit")))
+    (setq xref-show-definitions-function #'xref-show-definitions-completing-read))
 #+end_src
 
 *** AI-Assisted Coding (ai-code)
 
-~ai-code~ integrates modern AI coding assistants directly into Emacs workflows. Configured with ~gemini-cli~ as the backend and bound to ~C-c a~, it facilitates code generation, refactoring, documentation review, and interactive debugging.
+~ai-code~ integrates modern AI coding assistants directly into Emacs workflows. Configured with ~gemini-cli~ as the backend and bound to ~C-c C-a~, it facilitates code generation, refactoring, documentation review, and interactive debugging.
 
 #+begin_src emacs-lisp
   ;; Gemini AI Integration
   (use-package ai-code
-    :bind ("C-c a" . ai-code-map)
+    :bind ("C-c C-a" . ai-code-map)
     :config
     (setq ai-code-backend 'gemini-cli))
 #+end_src
@@ -1543,7 +1549,7 @@ When integrated into Emacs' native ~xref~ system, it serves as an instant defini
   (use-package lsp-mode
     :commands (lsp lsp-deferred)
     :init
-    (setq lsp-keymap-prefix "C-c l")
+    (setq lsp-keymap-prefix "s-l")
     :hook ((python-mode . lsp-deferred)
            (sage-shell:sage-mode . lsp-deferred)
            (lsp-mode . lsp-enable-which-key-integration))
@@ -1696,8 +1702,9 @@ Configures Emacs' built-in ~python~ mode for 4-space indentation and ~python3~ i
     :hook (prog-mode . company-mode)
     :bind (:map company-active-map
                 ("<tab>" . company-complete-selection)
-                ("C-n" . company-select-next)
-                ("C-p" . company-select-previous))
+                ("TAB"   . company-complete-selection)
+                ("C-n"   . company-select-next)
+                ("C-p"   . company-select-previous))
     :custom
     (company-minimum-prefix-length 1)
     (company-idle-delay 0.0)
@@ -2080,8 +2087,6 @@ AUCTeX 14 introduced commands for fast conversion between inline and display mat
       ;; Scoped keybindings local to LaTeX buffers
       (define-key LaTeX-mode-map (kbd "s-i") #'LaTeX-make-inline)
       (define-key LaTeX-mode-map (kbd "s-m") #'LaTeX-modify-math)
-      (define-key LaTeX-mode-map (kbd "C-c j") #'consult-outline)
-      (define-key LaTeX-mode-map (kbd "C-c C-r") #'reftex-citation)
       (define-key LaTeX-mode-map (kbd "C-c L") #'hydra-latex-tools/body)
 
       ;; Add custom font key (Mathfraktur)
@@ -2276,15 +2281,14 @@ This transient menu gathers frequent RefTeX, citation insertion, document naviga
 
 *** Latexdiff: Visual Version Control Diffs
 
-~latexdiff~ integrates with Git to run the external ~latexdiff~ Perl script on historical revisions of your document. Running ~latexdiff-vc~ (~C-c l d~ or ~d~ in ~hydra-latex-tools~) generates a marked-up diff document displaying added text in blue and deleted text strikethrough in red, compiling it straight to PDF for reviewing collaborator edits.
+~latexdiff~ integrates with Git to run the external ~latexdiff~ Perl script on historical revisions of your document. Running ~latexdiff-vc~ (~d~ in ~hydra-latex-tools~, bound to ~C-c L~) generates a marked-up diff document displaying added text in blue and deleted text strikethrough in red, compiling it straight to PDF for reviewing collaborator edits.
 
 - *Repository*: [[https://github.com/ft/latexdiff.el][ft/latexdiff.el on GitHub]]
 - *MELPA Page*: [[https://melpa.org/packages/latexdiff.html][latexdiff on MELPA]]
 
 #+begin_src emacs-lisp
   (use-package latexdiff
-    :bind (:map LaTeX-mode-map
-                ("C-c l d" . latexdiff-vc)))
+    :commands latexdiff-vc)
 #+end_src
 
 ** Fast Math Snippets & Expansions (CDLaTeX)
@@ -2489,9 +2493,9 @@ In standard Org mode, hiding markup delimiters (~org-hide-emphasis-markers t~) m
     :hook (org-mode . org-sticky-header-mode))
 #+end_src
 
-*** Smart Web Link Capture (org-cliplink)
+*** Smart Web Link Capture (org-cliplink, <f7>)
 
-~org-cliplink~ takes a URL from the system clipboard, fetches the remote web page's ~<title>~ element in the background, and inserts a clean, human-readable ~[[url][Page Title]]~ link at point.
+~org-cliplink~ takes a URL from the system clipboard, fetches the remote web page's ~<title>~ element in the background, and inserts a clean, human-readable ~[[url][Page Title]]~ link at point. Bound to ~<f7>~.
 
 - *Repository*: [[https://github.com/rexim/org-cliplink][rexim/org-cliplink on GitHub]]
 - *MELPA Page*: [[https://melpa.org/packages/org-cliplink.html][org-cliplink on MELPA]]
@@ -2499,7 +2503,7 @@ In standard Org mode, hiding markup delimiters (~org-hide-emphasis-markers t~) m
 #+begin_src emacs-lisp
   ;; Better links from clipboard (queries URL page titles)
   (use-package org-cliplink
-    :bind ("C-x p i" . org-cliplink))
+    :bind ("<f7>" . org-cliplink))
 #+end_src
 
 ** Custom GTD Workflow Functions
@@ -2562,7 +2566,7 @@ When a repeating or recurring task is marked DONE, ~org-reset-checkbox-state-may
 
 *** Fast Task Clocking (org-mru-clock)
 
-~org-mru-clock~ enables rapid clocking into tasks by presenting an interactive, completion-filtered list of your Most Recently Used (MRU) tasks across all agenda files.
+~org-mru-clock~ enables rapid clocking into tasks by presenting an interactive, completion-filtered list of your Most Recently Used (MRU) tasks across all agenda files. Bound to ~C-c C-x i~ (~org-mru-clock-in~) and ~C-c C-x j~ (~org-mru-clock-select-recent-task~), preserving native Org clock bindings (~C-c C-x C-j~ for ~org-clock-goto~).
 
 - *Repository*: [[https://github.com/unhammer/org-mru-clock][unhammer/org-mru-clock on GitHub]]
 - *MELPA Page*: [[https://melpa.org/packages/org-mru-clock.html][org-mru-clock on MELPA]]
@@ -2571,7 +2575,7 @@ When a repeating or recurring task is marked DONE, ~org-reset-checkbox-state-may
   ;; Precise clocking with Most Recently Used tasks
   (use-package org-mru-clock
     :bind (("C-c C-x i" . org-mru-clock-in)
-           ("C-c C-x C-j" . org-mru-clock-select-recent-task))
+           ("C-c C-x j" . org-mru-clock-select-recent-task))
     :config
     (setq org-mru-clock-files #'org-agenda-files))
 #+end_src
@@ -2702,7 +2706,7 @@ We configure YASnippet to look in our configuration's local ~snippets/~ director
 Key settings:
 - ~yas-wrap-around-region t~: When a region of text is active, expanding a snippet automatically encloses the highlighted text inside the snippet body (at ~$0~ or the first field) rather than deleting or overwriting it. This enables effortless wrapping of code blocks, HTML/XML tags, or LaTeX environments.
 - Selective Mode Hooks: Hooking ~yas-minor-mode~ to ~prog-mode~ and ~text-mode~ ensures snippets are available across all programming buffers, LaTeX, and Org notes while avoiding interference with special read-only or utility buffers (such as Dired, Magit, or Compilation).
-- Keybinding: ~C-c C-y~ in ~yas-minor-mode-map~ brings up the dedicated management Hydra.
+- Keybinding: ~C-c Y~ in ~yas-minor-mode-map~ brings up the dedicated management Hydra (preserving native Org timestamp evaluation on ~C-c C-y~).
 
 - *YASnippet Repository*: [[https://github.com/joaotavora/yasnippet][joaotavora/yasnippet on GitHub]]
 - *YASnippet MELPA*: [[https://melpa.org/packages/yasnippet.html][yasnippet on MELPA]]
@@ -2716,7 +2720,7 @@ Key settings:
     :hook ((text-mode . yas-minor-mode)
            (prog-mode . yas-minor-mode))
     :bind (:map yas-minor-mode-map
-                ("C-c C-y" . hydra-yas/body))
+                ("C-c Y" . hydra-yas/body))
     :config
     ;; Define explicit snippet directory paths
     (setq yas-snippet-dirs
@@ -2895,7 +2899,7 @@ Key settings:
   - ~ispell-local-dictionary-alist~ defines character boundary rules, UTF-8 encoding, and dictionary flag arguments (~-d~) for both American English (~en_US~) and Polish (~pl_PL~).
 - Keybindings:
   - ~C-c f b~: Spellcheck entire buffer (~flyspell-buffer~).
-  - ~C-c f d~ / ~C-c f j c~: Select and switch active dictionary (~ispell-change-dictionary~).
+  - ~C-c f d~: Select and switch active dictionary (~ispell-change-dictionary~).
 
 #+begin_src emacs-lisp
   (use-package flyspell
@@ -2916,8 +2920,7 @@ Key settings:
 
     :bind (:map flyspell-mode-map
                 ("C-c f b" . flyspell-buffer)
-                ("C-c f d" . ispell-change-dictionary)
-                ("C-c f j c" . ispell-change-dictionary)))
+                ("C-c f d" . ispell-change-dictionary)))
 #+end_src
 
 ** Performance Optimization (flyspell-lazy)
