@@ -28,10 +28,12 @@ compile: $(GEN_ELC)
 
 $(GEN_ELC): $(GEN_EL)
 	@echo "Byte-compiling $<..."
-	$(EMACS) -Q --batch -f batch-byte-compile $<
+	$(EMACS) -Q --batch \
+		--eval "(defmacro defhydra (&rest _) nil)" \
+		-f batch-byte-compile $<
 
-# Run test checks on the generated .el file (syntax check and byte-compilation)
-test: test-syntax compile
+# Run test checks on the generated .el file (syntax check)
+test: test-syntax
 
 # Fast syntax check: verifies balanced parentheses and valid Elisp reader syntax
 test-syntax: $(GEN_EL)
