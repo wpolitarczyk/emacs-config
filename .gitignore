@@ -1,0 +1,14 @@
+# Generated Emacs lisp files from config.org
+config.el
+*.elc
+
+# Private and local configuration
+private.el
+
+# Emacs backup and autosave files
+*~
+\#*\#
+.\#*
+
+# macOS metadata
+.DS_Store
