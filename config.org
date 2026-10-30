@@ -2285,23 +2285,6 @@ Because its automated pair expansions can occasionally overlap with ~smartparens
     :bind ("C-c R p" . academic-phrases-by-section)) ; p for Phrases
 #+end_src
 
-*** Overleaf Project Synchronization (git-overleaf)
-
-~git-overleaf~ enables full Git synchronization with Overleaf projects without requiring an Overleaf Premium subscription. Commands are organized under the established Git prefix (~C-c m o ...~).
-
-- *Repository*: [[https://github.com/Jamie-Cui/git-overleaf.el][Jamie-Cui/git-overleaf.el on GitHub]]
-- *MELPA Page*: [[https://melpa.org/packages/git-overleaf.html][git-overleaf on MELPA]]
-
-#+begin_src emacs-lisp
-  (use-package git-overleaf
-    :bind (("C-c m o a" . git-overleaf-authenticate)
-           ("C-c m o c" . git-overleaf-clone)
-           ("C-c m o p" . git-overleaf-push)
-           ("C-c m o l" . git-overleaf-pull))
-    :config
-    (setopt git-overleaf-enable-async nil))
-#+end_src
-
 * Org-mode
 ** General Configuration
 #+begin_src emacs-lisp :tangle yes
