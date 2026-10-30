@@ -1197,65 +1197,103 @@ Emacs provides multiple ways to interact with command-line tools. This section c
                    (window-height . 0.3))))
 #+end_src
 
-* Replacement for Helm
+* Modern Completion (Replacement for Helm)
 :PROPERTIES:
 :header-args: :tangle yes
 :END:
-** The Vertico "Modern Trio"
 
-These three packages replace the core of Helm. They are modular: Vertico handles the list, Marginalia adds information (like file permissions or docstrings) to the side, and Orderless allows you to type search terms in any order (e.g., "org init" to find init.org).
-#+BEGIN_SRC emacs-lisp
-  ;; The vertical completion UI
+Historically, monolithic frameworks like Helm and Ivy dominated Emacs interactive completion. While powerful, they reinvented custom completion protocols, introduced heavy runtime overhead, and often bypassed or rewrote Emacs' native completion primitives.
+
+Modern Emacs setups favor the modular **Minad / Vertico ecosystem** (Vertico, Marginalia, Orderless, and Consult). Rather than replacing Emacs' completion engine, these packages strictly build on top of the built-in ~completing-read~ standard API. They are lightweight, blazingly fast, fully composable, and universally compatible with any package using standard Emacs completion.
+
+** Vertico (Vertical Interactive Completion)
+
+~vertico~ transforms the horizontal minibuffer into a vertical list of completion candidates with responsive scrolling and candidate cycling. Because it relies purely on the standard Emacs completion API, it has virtually zero overhead and integrates cleanly with all core commands (~find-file~, ~switch-to-buffer~, ~M-x~).
+
+- *Repository*: [[https://github.com/minad/vertico][minad/vertico on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/vertico.html][vertico on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package vertico
     :init
-    (vertico-mode)
+    ;; Enable vertical completion globally
+    (vertico-mode 1)
     :custom
+    ;; Wrap around to the top/bottom when scrolling past the list boundary
     (vertico-cycle t))
+#+end_src
 
-  ;; Rich annotations in the margin (File sizes, docstrings, etc.)
+** Marginalia (Rich Minibuffer Annotations)
+
+~marginalia~ displays contextual information in the margin alongside completion candidates (such as file permissions, human-readable file sizes, modification timestamps, function docstrings, and variable values).
+
+To avoid timestamp discrepancies and calculation issues on cloud-synced storage (e.g. Google Drive, iCloud, or macOS file shares), we set ~marginalia-max-relative-age 0~ to consistently format dates with absolute timestamps (~YYYY-MM-DD HH:MM~).
+
+- *Repository*: [[https://github.com/minad/marginalia][minad/marginalia on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/marginalia.html][marginalia on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package marginalia
-    ;; :init
-    ;; (marginalia-mode)
+    :custom
+    ;; Always display absolute dates instead of relative times ("x hours ago")
+    ;; to prevent calculation issues on cloud-synced drives
+    (marginalia-max-relative-age 0)
     :config
-    ;; Use absolute time to avoid issues with relative time calculation
-    ;; especially on cloud-synced drives (Google Drive/macOS)
-    (setq marginalia--time-relative nil) ; Note: in some versions this is a function, not a variable
-
-    ;; A more robust way: redefine the annotator to use absolute dates
+    ;; Custom absolute date formatting
     (defun marginalia--time-relative (time)
-      "Display absolute time instead of relative to avoid 'wrong-number-of-arguments' errors."
-      (format-time-string "%Y-%m-%d %H:%M" time)
-      )
+      "Format timestamps as absolute dates (YYYY-MM-DD HH:MM)."
+      (format-time-string "%Y-%m-%d %H:%M" time))
+    (marginalia-mode 1))
+#+end_src
 
-    (marginalia-mode 1)
-    )
+** Orderless (Multi-Component Completion Style)
 
-  ;; Fuzzy searching logic: type "latex config" to find "config-latex.el"
+~orderless~ divides your search query by whitespace into individual components and matches candidates containing all components in *any order*. For example, typing ~conf tex~ or ~tex conf~ matches ~config-latex.el~ equally well.
+
+- *Repository*: [[https://github.com/oantolin/orderless][oantolin/orderless on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/orderless.html][orderless on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package orderless
     :custom
+    ;; Set Orderless as the primary completion style with basic fallback
     (completion-styles '(orderless basic))
+    ;; Preserve partial-completion prefix matching for file paths
     (completion-category-overrides '((file (styles basic partial-completion)))))
-#+END_SRC
+#+end_src
 
-** Consult (Search and Navigation)
+** Consult (Practical Search & Navigation Commands)
 
-Consult replaces helm-occur, helm-mini, and helm-show-kill-ring. Its "killer feature" is the live preview: as you move through search results, the buffer jumps to that location automatically so you can see the context without selecting it.
-#+BEGIN_SRC emacs-lisp
+~consult~ provides a suite of practical search and navigation commands that completely replace legacy Helm tools (~helm-occur~, ~helm-mini~, ~helm-show-kill-ring~, ~helm-rg~). Its standout feature is **live in-buffer preview**: as you move through search candidates in the minibuffer, the underlying buffer jumps to the candidate position so you can inspect the surrounding code without committing.
+
+- ~C-s~ (~consult-line~): Rapid interactive line search within the buffer with live preview.
+- ~C-x b~ (~consult-buffer~): Unified, categorized switcher for open buffers, recent files (~recentf~), and bookmarks.
+- ~M-y~ (~consult-yank-pop~): Visual, searchable kill-ring browser with preview.
+- ~C-c r~ (~consult-ripgrep~): Asynchronous, blazing-fast workspace search powered by Ripgrep.
+- ~C-c j~ (~consult-outline~): Jump to headings across Org, Markdown, and LaTeX documents.
+- ~M-g i~ (~consult-imenu~): Jump to function, variable, or class definitions in code buffers.
+
+- *Repository*: [[https://github.com/minad/consult][minad/consult on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/consult.html][consult on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package consult
-    :bind (;; Search within the current buffer (replaces helm-occur)
-           ("C-s" . consult-line)
-           ;; Buffer/Recent files (replaces helm-mini)
+    :bind (;; Search lines within current buffer (replaces helm-occur / isearch)
+           ("C-s"   . consult-line)
+           ;; Unified buffer, recent file, and bookmark switcher (replaces helm-mini)
            ("C-x b" . consult-buffer)
-           ;; Browse kill ring (replaces helm-show-kill-ring)
-           ("M-y" . consult-yank-pop)
-           ;; Search project files using ripgrep
+           ;; Visual kill-ring search (replaces helm-show-kill-ring)
+           ("M-y"   . consult-yank-pop)
+           ;; Search project files with Ripgrep
            ("C-c r" . consult-ripgrep)
-           ;; Jump to headings/outlines in Org/LaTeX
-           ("C-c j" . consult-outline))
+           ;; Jump to document headings in Org / Markdown / LaTeX
+           ("C-c j" . consult-outline)
+           ;; Jump to code definitions and symbols via imenu
+           ("M-g i" . consult-imenu))
     :config
-    ;; Enable previews for line search and buffer switching
+    ;; Enable immediate live previews for line search and buffer navigation
     (setq consult-preview-key 'any))
-#+END_SRC
+#+end_src
 
 * Helm
 :PROPERTIES:
