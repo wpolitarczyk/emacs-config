@@ -1985,27 +1985,43 @@ We bind standard Git prefix keys (~C-x v ...~) and a dedicated Hydra on ~C-x v h
 #+end_src
 
 * LaTeX
-** AUCTeX Core
-The primary engine for writing and compiling LaTeX.
-#+begin_src emacs-lisp :tangle yes
+
+A modern, high-efficiency academic writing environment for LaTeX and BibTeX. Features AUCTeX with PDF-Tools SyncTeX synchronization, RefTeX with Vertico-native citation selection, Citar bibliography management, and language server diagnostics.
+
+** AUCTeX Core Engine
+
+AUCTeX is the premier, comprehensive environment for writing and authoring TeX, LaTeX, and ConTeXt documents in Emacs. It provides smart indentation, fontification, syntax-aware macro/environment insertion (~C-c C-e~ for environments, ~C-c C-s~ for sections), error parsing, and automated compilation via external TeX engines.
+
+- *Official Website*: [[https://www.gnu.org/software/auctex/][GNU AUCTeX]]
+- *Repository*: [[https://git.savannah.gnu.org/cgit/auctex.git][AUCTeX on Savannah]] / [[https://github.com/emacs-straight/auctex][AUCTeX Mirror]]
+- *ELPA Page*: [[https://elpa.gnu.org/packages/auctex.html][auctex on GNU ELPA]]
+
+*** PDF-Tools & SyncTeX Integration
+We configure AUCTeX to use ~PDF Tools~ as its default PDF viewer. With ~TeX-source-correlate-mode~ and ~TeX-source-correlate-start-server~ enabled, bidirectional SyncTeX navigation allows jumping directly from source code to the corresponding PDF location (and vice versa via ~Command-Click~ in PDF-Tools).
+
+After compilation succeeds, ~TeX-revert-document-buffer~ automatically refreshes the rendered PDF buffer without shifting window focus.
+
+*** Math Delimiter Manipulation
+AUCTeX 14 introduced commands for fast conversion between inline and display math constructs:
+- ~LaTeX-make-inline~ (~s-i~ / ~Super-i~): Converts a display math environment (such as ~\[...\]~ or ~\begin{equation}...\end{equation}~) at point into inline math (~$...$~ or ~\(...\)~).
+- ~LaTeX-modify-math~ (~s-m~ / ~Super-m~): Interactively transforms the math delimiter style or environment surrounding point.
+
+*** Multi-File Project Support & Section Hooks
+- ~TeX-master t~: Prompts for the master document only once when opening a child file without a ~TeX-master~ header comment.
+- ~LaTeX-section-hook~: Automatically inserts standardized labels for equations (~eq:~), figures (~fig:~), and tables (~tab:~).
+- ~TeX-symbol-list~: Custom extensions teach AUCTeX to follow ~\import{dir}{file}~ and ~\subimport{dir}{file}~ commands from the LaTeX ~import~ package, ensuring auto-completion and multi-file parsing work across modular directories.
+- ~LaTeX-font-list~: Maps ~C-c C-f C-v~ to insert Mathfraktur formatting (~\mathfrak{...}~).
+
+#+begin_src emacs-lisp
   (use-package tex
     :ensure auctex
     :mode ("\\.tex\\'" . LaTeX-mode)
-    :bind (
-           ;; :map LaTeX-mode-map
-                ("s-i" . LaTeX-make-inline)
-                ("s-m" . LaTeX-modify-math)
-                ;; Use Consult for a "live-preview" TOC
-                ("C-c j" . consult-outline)
-                ;; Modern citation insertion
-                ("C-c C-r" . reftex-citation)
-                )
     :init
     ;; Use pdf-tools to open PDF files
     (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
           TeX-source-correlate-mode t
           TeX-source-correlate-start-server t)
-    
+
     ;; Sync PDF buffer after compilation
     (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
     :hook ((LaTeX-mode . TeX-fold-mode)
@@ -2015,7 +2031,7 @@ The primary engine for writing and compiling LaTeX.
     (setq TeX-auto-save t
           TeX-parse-self t
           TeX-save-query nil
-          TeX-master t ;; Ask for master file only if not found
+          TeX-master t ; Ask for master file only if not found
           TeX-show-compilation t
           TeX-PDF-mode t
           TeX-error-overview-open-after-TeX-run t
@@ -2023,7 +2039,7 @@ The primary engine for writing and compiling LaTeX.
 
     ;; Custom Sectioning and Labels
     (setq LaTeX-section-hook
-          '(LaTeX-section-heading LaTeX-section-title LaTeX-section-toc 
+          '(LaTeX-section-heading LaTeX-section-title LaTeX-section-toc
             LaTeX-section-section LaTeX-section-label)
           LaTeX-eqnarray-label "eq"
           LaTeX-equation-label "eq"
@@ -2035,85 +2051,102 @@ The primary engine for writing and compiling LaTeX.
     (setq TeX-newline-function 'reindent-then-newline-and-indent
           LaTeX-item-indent 2)
 
-    ;; Add custom font key (Mathfraktur)
     (with-eval-after-load 'latex
-        (add-to-list 'LaTeX-font-list '(?\C-v "" "" "\\mathfrak{" "}")))
-    ;; Use the AUCTeX style system to handle the 'import' package
-    (with-eval-after-load 'latex
-      ;; Tell AUCTeX how to handle \import{dir}{file} 
-      (add-to-list 'TeX-symbol-list 
-                   '("import" TeX-arg-directory TeX-arg-file))
-      (add-to-list 'TeX-symbol-list 
-                   '("subimport" TeX-arg-directory TeX-arg-file))))
+      ;; Scoped keybindings local to LaTeX buffers
+      (define-key LaTeX-mode-map (kbd "s-i") #'LaTeX-make-inline)
+      (define-key LaTeX-mode-map (kbd "s-m") #'LaTeX-modify-math)
+      (define-key LaTeX-mode-map (kbd "C-c j") #'consult-outline)
+      (define-key LaTeX-mode-map (kbd "C-c C-r") #'reftex-citation)
+      (define-key LaTeX-mode-map (kbd "C-c L") #'hydra-latex-tools/body)
+
+      ;; Add custom font key (Mathfraktur)
+      (add-to-list 'LaTeX-font-list '(?\C-v "" "" "\\mathfrak{" "}"))
+
+      ;; Tell AUCTeX how to handle \import{dir}{file} and \subimport{dir}{file}
+      (add-to-list 'TeX-symbol-list '("import" TeX-arg-directory TeX-arg-file))
+      (add-to-list 'TeX-symbol-list '("subimport" TeX-arg-directory TeX-arg-file))))
 #+end_src
 
-** Citations and Referencing (RefTeX & BibTeX)
-#+begin_src emacs-lisp :tangle yes
+** Citations & Bibliography Management
+
+A modern academic workflow requires seamless handling of citations, multi-file label tracking, automated formatting, and online DOI lookup.
+
+*** RefTeX: Multi-File Cross-Referencing
+
+RefTeX is GNU Emacs' built-in system for managing labels, references, index entries, and citations.
+
+Key configurations:
+- ~reftex-plug-into-AUCTeX t~: Fully integrates RefTeX with AUCTeX's macro insertion routines (~C-c )~ for references, ~C-c [~ for citations).
+- ~reftex-completion-package 'default~: Configures RefTeX to use standard Emacs ~completing-read~, making it seamlessly powered by Vertico, Marginalia, and Orderless.
+- ~reftex-save-parse-info t~: Caches document parse trees in ~.rel~ files across sessions, dramatically speeding up navigation across massive multi-chapter dissertations and books.
+- ~reftex-use-external-file-finders t~: Leverages TeX's ~kpsewhich~ tool to locate bibliography and included subfiles across non-standard directory hierarchies.
+- ~reftex-texpath-environment '("./" "./content/")~: Directs RefTeX to search child subdirectories for project documents.
+
+#+begin_src emacs-lisp
   (use-package reftex
     :hook (LaTeX-mode . turn-on-reftex)
     :config
     (setq reftex-plug-into-AUCTeX t
-          reftex-cite-prompt-optional-args t)
-    ;; Tells RefTeX to look for the master file information
-    (setq reftex-isearch-confirm-search t)
-    ;; Crucial for multi-file: parses the whole document tree
-    (setq reftex-save-parse-info t)
-    ;; Ensure it follows the TeX-master variable strictly
-    (setq reftex-use-external-file-finders t)
-    (setq reftex-toc-split-windows-fraction 0.3)
-    ;; This makes RefTeX use the standard completion system (Vertico)
-    (setq reftex-completion-package 'default)
-    ;; Add 'import' to the list of commands RefTeX follows to find child files
-    ;; (add-to-list 'reftex-include-file-commands '("import" 2))
-    ;; (add-to-list 'reftex-include-file-commands '("subimport" 2))
-    ;; (setq reftex-include-file-commands 
-    ;;         (list '("include" 1) 
-    ;;               '("input" 1) 
-    ;;               '("import" 2) 
-    ;;               '("subimport" 2)))
-    (setq reftex-texpath-environment '("./" "./content/")))
+          reftex-cite-prompt-optional-args t
+          reftex-isearch-confirm-search t
+          reftex-save-parse-info t
+          reftex-use-external-file-finders t
+          reftex-toc-split-windows-fraction 0.3
+          reftex-completion-package 'default
+          reftex-texpath-environment '("./" "./content/")))
+#+end_src
 
-  ;; Format BibTeX files on save
-  (use-package bibclean-format
-    :hook (bibtex-mode . bibclean-format-on-save-mode))
+*** Citar: Modern Vertico-Native Citation Management
 
-  ;; Online bibliography search
-  (use-package biblio
-    :defer t)
+~citar~ is a fast, highly-customizable citation management package built specifically for completion frameworks using standard ~completing-read~ (Vertico, Marginalia, Embark). Bound to ~C-c b~ (~citar-insert-citation~), it provides rich candidate annotations (authors, year, title, journal) and instant citation insertion.
 
+- *Repository*: [[https://github.com/emacs-citar/citar][emacs-citar/citar on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/citar.html][citar on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package citar
     :ensure t
-    :bind (("C-c b" . citar-insert-citation))
+    :bind ("C-c b" . citar-insert-citation)
     :config
-    ;; This ensures citar uses your Vertico/Consult setup
+    ;; Ensures citar leverages standard completing-read (Vertico/Consult)
     (setq citar-at-point-function 'citar-capf))
 #+end_src
 
-#+BEGIN_SRC emacs-lisp :tangle yes
-  (defhydra hydra-latex-tools (:color blue :hint nil)
-    "
-    ^RefTeX^          ^Citations^       ^Navigation^
-    --------------------------------------------------
-    _p_: Parse All    _i_: Insert (Citar) _o_: Consult Outline
-    _r_: Reset RefTeX _c_: RefTeX Cit.    _l_: Goto Label
-    _q_: quit
-    "
-    ("p" reftex-parse-all)
-    ("r" reftex-reset)
-    ("i" citar-insert-citation)
-    ("c" reftex-citation)
-    ("o" consult-outline)
-    ("l" reftex-goto-label)
-    ("q" nil))
+*** Biblio: Online Literature Lookup
 
-  ;; Bind it to a convenient key in LaTeX mode
-  (with-eval-after-load 'latex
-    (define-key LaTeX-mode-map (kbd "C-c L") 'hydra-latex-tools/body))
-#+END_SRC
+~biblio.el~ allows browsing and querying online academic repositories—including Crossref, arXiv, DBLP, HAL, and IEEE Xplore—directly from Emacs. Search results can be fetched, inspected, and appended as clean BibTeX records straight into your active bibliography.
 
+- *Repository*: [[https://github.com/cpitclaudel/biblio.el][cpitclaudel/biblio.el on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/biblio.html][biblio on MELPA]]
 
-#+BEGIN_SRC emacs-lisp :tangle no
-;; Helm integration for citations
+#+begin_src emacs-lisp
+  ;; Online bibliography search
+  (use-package biblio
+    :defer t)
+#+end_src
+
+*** Bibclean-Format: Automated BibTeX Formatting
+
+~bibclean-format~ pretty-prints and standardizes ~.bib~ files upon saving using the external ~bibclean~ command-line utility (installable via Homebrew: ~brew install bibclean~).
+
+- *Repository*: [[https://github.com/rougier/bibclean-format][rougier/bibclean-format on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/bibclean-format.html][bibclean-format on MELPA]]
+
+#+begin_src emacs-lisp
+  ;; Format BibTeX files on save
+  (use-package bibclean-format
+    :hook (bibtex-mode . bibclean-format-on-save-mode))
+#+end_src
+
+*** Archived Helm-BibTeX Integration
+:PROPERTIES:
+:header-args: :tangle no
+:END:
+
+Previously, ~helm-bibtex~ provided citation and bibliography search within the Helm completion framework. Now that we have migrated to Vertico and Consult, ~citar~ and ~biblio~ deliver equivalent functionality without requiring Helm.
+
+#+begin_src emacs-lisp
+  ;; Helm integration for citations (Archived)
   (use-package helm-bibtex
     :bind (("C-c b" . my/helm-bibtex-project)
            :map helm-command-map
@@ -2132,13 +2165,49 @@ The primary engine for writing and compiling LaTeX.
     (setq bibtex-completion-format-citation-functions
           '((latex-mode . bibtex-completion-format-citation-cite)
             (default    . bibtex-completion-format-citation-default))))
-#+END_SRC
+#+end_src
 
-** Autocompletion for LaTeX
-#+begin_src emacs-lisp :tangle yes
+** Interactive LaTeX Productivity (Hydra)
+
+This transient menu gathers frequent RefTeX, citation insertion, document navigation, and diffing operations under a single, memorable keymap bound to ~C-c L~ in ~LaTeX-mode-map~.
+
+#+begin_src emacs-lisp
+  (defhydra hydra-latex-tools (:color blue :hint nil)
+    "
+    ^RefTeX^          ^Citations^         ^Navigation & Tools^
+    ----------------------------------------------------------
+    _p_: Parse All    _i_: Insert (Citar) _o_: Consult Outline
+    _r_: Reset RefTeX _c_: RefTeX Cit.    _l_: Goto Label
+    _q_: quit                             _d_: LaTeX Diff (VC)
+    "
+    ("p" reftex-parse-all)
+    ("r" reftex-reset)
+    ("i" citar-insert-citation)
+    ("c" reftex-citation)
+    ("o" consult-outline)
+    ("l" reftex-goto-label)
+    ("d" latexdiff-vc)
+    ("q" nil))
+#+end_src
+
+** In-Buffer Autocompletion for LaTeX
+
+*** Company AUCTeX & RefTeX Backends
+
+~company-auctex~ and ~company-reftex~ supply specialized autocompletion candidates to Company mode inside LaTeX buffers:
+- ~company-auctex~: Completes LaTeX macros (e.g. ~\section~, ~\textbf~), math symbols, and environments (~\begin{align}~, ~\begin{bmatrix}~).
+- ~company-reftex~: Completes cross-reference labels and BibTeX citation keys directly in the buffer.
+
+- *Company-AUCTeX Repository*: [[https://github.com/alexey-p/company-auctex][alexey-p/company-auctex on GitHub]]
+- *Company-AUCTeX MELPA*: [[https://melpa.org/packages/company-auctex.html][company-auctex on MELPA]]
+- *Company-RefTeX Repository*: [[https://github.com/TheBB/company-reftex][TheBB/company-reftex on GitHub]]
+- *Company-RefTeX MELPA*: [[https://melpa.org/packages/company-reftex.html][company-reftex on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package company-auctex
     :after (company tex)
-    :config (company-auctex-init))
+    :config
+    (company-auctex-init))
 
   (use-package company-reftex
     :after (company reftex)
@@ -2147,48 +2216,92 @@ The primary engine for writing and compiling LaTeX.
       (add-to-list 'company-backends '(company-reftex-labels company-reftex-citations))))
 #+end_src
 
-** Language Server & Utilities
-#+begin_src emacs-lisp :tangle yes
+** Language Server & Revision Diffing
+
+*** LSP-LaTeX (Texlab)
+
+~lsp-latex~ connects AUCTeX to the Language Server Protocol using external language servers such as [[https://texlab.netlify.app/][Texlab]]. It provides workspace symbol searching, live diagnostics, syntax error detection, and code formatting.
+
+- *Repository*: [[https://github.com/emacs-lsp/lsp-latex][emacs-lsp/lsp-latex on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/lsp-latex.html][lsp-latex on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package lsp-latex
     :after lsp-mode)
+#+end_src
 
+*** Latexdiff: Visual Version Control Diffs
+
+~latexdiff~ integrates with Git to run the external ~latexdiff~ Perl script on historical revisions of your document. Running ~latexdiff-vc~ (~C-c l d~ or ~d~ in ~hydra-latex-tools~) generates a marked-up diff document displaying added text in blue and deleted text strikethrough in red, compiling it straight to PDF for reviewing collaborator edits.
+
+- *Repository*: [[https://github.com/ft/latexdiff.el][ft/latexdiff.el on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/latexdiff.html][latexdiff on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package latexdiff
     :bind (:map LaTeX-mode-map
                 ("C-c l d" . latexdiff-vc)))
 #+end_src
 
-** Fast Snippets (CDLaTeX)
+** Fast Math Snippets & Expansions (CDLaTeX)
+
+~cdlatex~ is a minor mode designed by Carsten Dominik (the creator of Org-mode) for fast typing of LaTeX math formulas and environments. It provides quick backquote combinations for Greek letters and symbols (~`a~ -> ~\alpha~, ~`b~ -> ~\beta~), automated subscript/superscript pairing, and tab-expanded environment templates.
+
+Because its automated pair expansions can occasionally overlap with ~smartparens-mode~ and ~company-mode~, it is kept dormant here and not tangled by default. It can be activated on demand for intense mathematical typing sessions.
+
+- *Repository*: [[https://github.com/cdominik/cdlatex][cdominik/cdlatex on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/cdlatex.html][cdlatex on MELPA]]
+
 #+begin_src emacs-lisp :tangle no
   (use-package cdlatex
     :hook (LaTeX-mode . turn-on-cdlatex))
 #+end_src
 
-** Arxiv-mode
-#+BEGIN_SRC emacs-lisp :tangle yes
+** Academic Research & Collaboration Tools
+
+*** arXiv Preprint Search (arxiv-mode)
+
+~arxiv-mode~ allows searching the arXiv database directly within Emacs by author, title, abstract, or category. You can read abstracts, download PDFs straight into your research folders, or copy BibTeX citations.
+
+- *Keybinding*: ~C-c R a~ (~R~ for Research, ~a~ for arXiv).
+- *Repository*: [[https://github.com/frostred/arxiv-mode][frostred/arxiv-mode on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/arxiv-mode.html][arxiv-mode on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package arxiv-mode
     :bind ("C-c R a" . arxiv-search)) ; R for Research, a for Arxiv
-#+END_SRC
+#+end_src
 
-** Academic phrases
-#+BEGIN_SRC emacs-lisp :tangle yes 
+*** Academic Phrasebank (academic-phrases)
+
+~academic-phrases~ provides instant access to the Manchester Academic Phrasebank, organized by paper section (Abstract, Introduction, Literature Review, Methodology, Results, Discussion, Conclusion). It allows inserting standardized academic phrases and transition expressions directly at point.
+
+- *Keybinding*: ~C-c R p~ (~R~ for Research, ~p~ for Phrases).
+- *Repository*: [[https://github.com/nashamri/academic-phrases][nashamri/academic-phrases on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/academic-phrases.html][academic-phrases on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package academic-phrases
     :bind ("C-c R p" . academic-phrases-by-section)) ; p for Phrases
-#+END_SRC
-** Git Overleaf
-Overleaf project Git integration plugin that does not require Overleaf Premium.
-#+begin_src emacs-lisp :tangle yes
+#+end_src
+
+*** Overleaf Project Synchronization (git-overleaf)
+
+~git-overleaf~ enables full Git synchronization with Overleaf projects without requiring an Overleaf Premium subscription. Commands are organized under the established Git prefix (~C-c m o ...~).
+
+- *Repository*: [[https://github.com/Jamie-Cui/git-overleaf.el][Jamie-Cui/git-overleaf.el on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/git-overleaf.html][git-overleaf on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package git-overleaf
-    ;; Fetch directly from GitHub using Emacs 29+ built-in package-vc
-    ;; :vc (:url "https://github.com/Jamie-Cui/git-overleaf.el"
-    ;;     :rev :newest)
-    ;; Bind commands using your established Git prefix (C-c m)
     :bind (("C-c m o a" . git-overleaf-authenticate)
            ("C-c m o c" . git-overleaf-clone)
            ("C-c m o p" . git-overleaf-push)
            ("C-c m o l" . git-overleaf-pull))
-    :config (setopt git-overleaf-enable-async nil)
-    )
+    :config
+    (setopt git-overleaf-enable-async nil))
 #+end_src
+
 * Org-mode
 ** General Configuration
 #+begin_src emacs-lisp :tangle yes
