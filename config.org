@@ -649,9 +649,29 @@ Emacs 26+ provides a high-performance C-level line numbering engine (~display-li
 #+end_src
 
 * Hydra
-Documentation: [[https://github.com/abo-abo/hydra][GitHub - abo-abo/hydra: make Emacs bindings that stick around]]
+:PROPERTIES:
+:header-args: :tangle yes
+:END:
 
-#+begin_src emacs-lisp :tangle yes
+Emacs commands often require multi-key sequences (such as ~C-x o~ or ~C-c w~). When performing repetitive actions—such as rearranging split windows, navigating tabs, tweaking keyboard macros, or querying documentation—re-typing prefix keys over and over introduces friction.
+
+~hydra~ solves this by creating transient keybinding states that "stick around". Once a Hydra body is invoked, related actions can be executed repeatedly with single keystrokes until you explicitly dismiss the state.
+
+- *Repository*: [[https://github.com/abo-abo/hydra][abo-abo/hydra on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/hydra.html][hydra on MELPA]]
+
+Hydra defines different execution semantics via color heads:
+- **red** (default): Executes the command and keeps the Hydra active.
+- **blue**: Executes the command and immediately exits the Hydra.
+- **amaranth**: Executes the command and intercepts non-Hydra keys (preventing accidental exits until an explicit exit key is pressed).
+- **pink**: Executes the command and allows non-Hydra keys to run normally while exiting the Hydra.
+- **teal**: Like blue, but foreign keys are blocked.
+
+** Core Setup & Global Entry Points
+
+Initializes ~hydra~ and defines convenient global entry shortcuts for the most frequently used operational workflows.
+
+#+begin_src emacs-lisp
   (use-package hydra
     :defer t
     :demand t
@@ -660,146 +680,186 @@ Documentation: [[https://github.com/abo-abo/hydra][GitHub - abo-abo/hydra: make 
            ("C-x t h" . hydra-tab-bar/body)
            ("<f3>"    . hydra-macro/body)
            ("C-c d"   . hydra-describe/body)
-           ("C-c H"   . hydra-apropos/body))
-    :config
-    
-    ;; --- Window Movement Hydra ---
-    (defhydra hydra-window ()
-      "Window movement and manipulation."
-      ("h" windmove-left "←" :column "Movement")
-      ("j" windmove-down "↓")
-      ("k" windmove-up "↑")
-      ("l" windmove-right "→")
-      ("F" follow-mode "Follow")
-
-      ("v" (lambda ()
-             (interactive)
-             (split-window-right)
-             (windmove-right))
-       "vertical" :column "Split")
-      ("x" (lambda ()
-             (interactive)
-             (split-window-below)
-             (windmove-down))
-       "horizontal")
-      ("d" delete-window "Delete window")
-      ("o" delete-other-windows "Delete other window")
-      
-      ("b" helm-mini "Helm mini" :column "Switch")
-      ("f" helm-find-files "Find files")
-      ("S" save-buffer "Save")
-
-      ("q" nil "Exit" :column "Other" :exit t))
-
-    ;; --- Tab-mode Hydra ---
-    (defhydra hydra-tab-bar (:color amaranth)
-      "Tab Bar Operations"
-      ("t" tab-new "Create a new tab" :column "Creation")
-      ("d" dired-other-tab "Open Dired in another tab")
-      ("f" find-file-other-tab "Find file in another tab")
-      ("0" tab-close "Close current tab")
-      ("m" tab-move "Move current tab" :column "Management")
-      ("r" tab-rename "Rename Tab")
-      ("<return>" tab-bar-select-tab-by-name "Select tab by name" :column "Navigation")
-      ("l" tab-next "Next Tab")
-      ("j" tab-previous "Previous Tab")
-      ("q" nil "Exit" :exit t))
-
-    ;; --- Keyboard Macro Hydra ---
-    (defhydra hydra-macro (:hint nil :color pink :pre 
-                                 (when defining-kbd-macro
-                                   (kmacro-end-macro 1)))
-      "Keyboard Macro Commands"
-      ("j" kmacro-start-macro "Start macro" :color blue :column "Create-Cycle")
-      ("l" kmacro-end-or-call-macro-repeat "End macro")
-      ("i" kmacro-cycle-ring-previous "Previous macro")
-      ("k" kmacro-cycle-ring-next "Next macro")
-
-      ("e" kmacro-end-or-call-macro-repeat "Execute macro" :column "Basic")
-      ("d" kmacro-delete-ring-head "Delete macro")
-      ("o" kmacro-edit-macro-repeat "Edit macro")
-      ("r" apply-macro-to-region-lines "Apply to region")
-      ("m" kmacro-step-edit-macro "Step")
-      ("s" kmacro-swap-ring "Swap")
-
-      ("n" kmacro-insert-counter "Insert" :column "Counter")
-      ("t" kmacro-set-counter "Set")
-      ("a" kmacro-add-counter "Add")
-      ("f" kmacro-set-format "Format")
-      
-      ("b" kmacro-name-last-macro "Name" :column "Save")
-      ("K" kmacro-bind-to-key "Bind to key")
-      ("x" kmacro-to-register "Register")
-      ("B" insert-kbd-macro "Defun")
-      
-      ("'" kmacro-edit-macro "Previous" :column "Edit")
-      ("," edit-kbd-macro "Last")
-      
-      ("q" nil "Exit" :column "Other"))
-
-    ;; --- Describe (Help) Hydra ---
-    (defhydra hydra-describe (:color blue)
-      "Help and Describe Commands"
-      ("b" describe-bindings "Bindings")
-      ("c" describe-key-briefly "Key (briefly)")
-      ("f" describe-function "Function")
-      ("k" describe-key "Key")
-      ("m" describe-mode "Mode")
-      ("o" describe-symbol "Symbol")
-      ("s" describe-syntax "Syntax")
-      ("v" describe-variable "Variable")
-      ("x" describe-command "Command")
-      ("C" describe-coding-system "Coding system")
-      ("I" describe-input-method "Input Method")
-      ("L" describe-language-environment "Language Env.")
-      ("P" describe-package "Package"))
-
-    ;; --- Apropos Hydra ---
-    (defhydra hydra-apropos (:color blue)
-      "Apropos Commands"
-      ("a" apropos "Apropos")
-      ("d" apropos-documentation "Documentation")
-      ("v" apropos-variable "Variable")
-      ("c" apropos-command "Command")
-      ("l" apropos-library "Library")
-      ("u" apropos-user-option "User option")
-      ("e" apropos-value "Value")))
+           ("C-c H"   . hydra-apropos/body)))
 #+end_src
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+** Window Manipulation & Navigation (hydra-window)
+
+Invoked via ~C-c w~. Provides single-key navigation across window splits using Vim-like directional keys (~h~, ~j~, ~k~, ~l~), rapid splitting (~v~ for vertical split and focus, ~x~ for horizontal split and focus), deletion (~d~ and ~o~), and buffer switching (~b~ and ~f~).
+
+#+begin_src emacs-lisp
+  (defhydra hydra-window ()
+    "Window movement and manipulation."
+    ("h" windmove-left "←" :column "Movement")
+    ("j" windmove-down "↓")
+    ("k" windmove-up "↑")
+    ("l" windmove-right "→")
+    ("F" follow-mode "Follow")
+
+    ("v" (lambda ()
+           (interactive)
+           (split-window-right)
+           (windmove-right))
+     "vertical" :column "Split")
+    ("x" (lambda ()
+           (interactive)
+           (split-window-below)
+           (windmove-down))
+     "horizontal")
+    ("d" delete-window "Delete window")
+    ("o" delete-other-windows "Delete other window")
+
+    ("b" helm-mini "Helm mini" :column "Switch")
+    ("f" helm-find-files "Find files")
+    ("S" save-buffer "Save")
+
+    ("q" nil "Exit" :column "Other" :exit t))
+#+end_src
+
+** Native Tab Bar Operations (hydra-tab-bar)
+
+Invoked via ~C-x t h~. Provides an interactive controller for Emacs 27+ native tab bars (~tab-bar-mode~). Configured with ~:color amaranth~ so foreign keystrokes do not inadvertently exit the menu while organizing workspaces.
+
+- **Creation**: Create new tabs (~t~), open Dired in a new tab (~d~), or open a file in a new tab (~f~).
+- **Management**: Close (~0~), move (~m~), or rename (~r~) tabs.
+- **Navigation**: Switch to next (~l~) or previous (~j~) tab, or jump to a tab by name (~<return>~).
+
+#+begin_src emacs-lisp
+  (defhydra hydra-tab-bar (:color amaranth)
+    "Tab Bar Operations"
+    ("t" tab-new "Create a new tab" :column "Creation")
+    ("d" dired-other-tab "Open Dired in another tab")
+    ("f" find-file-other-tab "Find file in another tab")
+    ("0" tab-close "Close current tab")
+    ("m" tab-move "Move current tab" :column "Management")
+    ("r" tab-rename "Rename Tab")
+    ("<return>" tab-bar-select-tab-by-name "Select tab by name" :column "Navigation")
+    ("l" tab-next "Next Tab")
+    ("j" tab-previous "Previous Tab")
+    ("q" nil "Exit" :exit t))
+#+end_src
+
+** Keyboard Macro Automation (hydra-macro)
+
+Invoked via ~<f3>~. Emacs keyboard macros (~kmacro~) are extraordinarily powerful for ad-hoc repetitive text transformations, but remembering all the distinct macro ring commands, counter manipulations, and storage options is challenging.
+
+This Hydra groups all macro functionality into a cohesive control panel:
+- Configured with ~:color pink~ and automatically terminates any in-progress macro recording upon opening (~:pre (when defining-kbd-macro (kmacro-end-macro 1))~).
+- Allows cyclic execution, counter adjustments (~n~, ~t~, ~a~, ~f~), region application (~r~), and saving macros into registers or named Lisp defuns (~b~, ~K~, ~x~, ~B~).
+
+#+begin_src emacs-lisp
+  (defhydra hydra-macro (:hint nil :color pink :pre
+                               (when defining-kbd-macro
+                                 (kmacro-end-macro 1)))
+    "Keyboard Macro Commands"
+    ("j" kmacro-start-macro "Start macro" :color blue :column "Create-Cycle")
+    ("l" kmacro-end-or-call-macro-repeat "End macro")
+    ("i" kmacro-cycle-ring-previous "Previous macro")
+    ("k" kmacro-cycle-ring-next "Next macro")
+
+    ("e" kmacro-end-or-call-macro-repeat "Execute macro" :column "Basic")
+    ("d" kmacro-delete-ring-head "Delete macro")
+    ("o" kmacro-edit-macro-repeat "Edit macro")
+    ("r" apply-macro-to-region-lines "Apply to region")
+    ("m" kmacro-step-edit-macro "Step")
+    ("s" kmacro-swap-ring "Swap")
+
+    ("n" kmacro-insert-counter "Insert" :column "Counter")
+    ("t" kmacro-set-counter "Set")
+    ("a" kmacro-add-counter "Add")
+    ("f" kmacro-set-format "Format")
+
+    ("b" kmacro-name-last-macro "Name" :column "Save")
+    ("K" kmacro-bind-to-key "Bind to key")
+    ("x" kmacro-to-register "Register")
+    ("B" insert-kbd-macro "Defun")
+
+    ("'" kmacro-edit-macro "Previous" :column "Edit")
+    ("," edit-kbd-macro "Last")
+
+    ("q" nil "Exit" :column "Other"))
+#+end_src
+
+** Documentation & Help Discovery (hydra-describe & hydra-apropos)
+
+Both Hydras use ~:color blue~ (execute once and exit), functioning as high-efficiency launcher menus for Emacs' built-in self-documenting introspection system:
+
+- **~hydra-describe~** (~C-c d~): Quick access to describe functions, variables, keybindings, modes, faces, coding systems, and packages.
+- **~hydra-apropos~** (~C-c H~): Search across all symbols, documentation strings, libraries, and user options using regex patterns.
+
+#+begin_src emacs-lisp
+  ;; --- Describe (Help) Hydra ---
+  (defhydra hydra-describe (:color blue)
+    "Help and Describe Commands"
+    ("b" describe-bindings "Bindings")
+    ("c" describe-key-briefly "Key (briefly)")
+    ("f" describe-function "Function")
+    ("k" describe-key "Key")
+    ("m" describe-mode "Mode")
+    ("o" describe-symbol "Symbol")
+    ("s" describe-syntax "Syntax")
+    ("v" describe-variable "Variable")
+    ("x" describe-command "Command")
+    ("C" describe-coding-system "Coding system")
+    ("I" describe-input-method "Input Method")
+    ("L" describe-language-environment "Language Env.")
+    ("P" describe-package "Package"))
+
+  ;; --- Apropos Hydra ---
+  (defhydra hydra-apropos (:color blue)
+    "Apropos Commands"
+    ("a" apropos "Apropos")
+    ("d" apropos-documentation "Documentation")
+    ("v" apropos-variable "Variable")
+    ("c" apropos-command "Command")
+    ("l" apropos-library "Library")
+    ("u" apropos-user-option "User option")
+    ("e" apropos-value "Value"))
+#+end_src
+
+** Interactive Hydra Inspector (my/list-config-hydras)
+
+An interactive diagnostic utility that dynamically scans your Emacs configuration for all defined Hydras and extracts their global keybindings (from ~:bind~ declarations, ~global-set-key~, or ~keymap-global-set~), presenting them in a dedicated ~*My Hydras*~ inspection buffer.
+
+Also accessible from the quick-navigator buttons on the startup Dashboard.
+
+#+begin_src emacs-lisp
   (defun my/list-config-hydras ()
-    "Scan config.el for Hydras and their global keybindings."
+    "Scan configuration for defined Hydras and their global keybindings."
     (interactive)
-    (let ((config-path (expand-file-name "config.el" user-emacs-directory))
-          (hydra-list '()))
-      (if (not (file-exists-p config-path))
-          (message "Config file not found: %s" config-path)
+    (let* ((config-path (expand-file-name "config.el" user-emacs-directory))
+           (org-path (expand-file-name "config.org" user-emacs-directory))
+           (target-file (cond ((file-exists-p config-path) config-path)
+                              ((file-exists-p org-path) org-path)
+                              (t nil)))
+           (hydra-list '()))
+      (if (not target-file)
+          (message "Neither config.el nor config.org found in %s" user-emacs-directory)
         (with-temp-buffer
-          (insert-file-contents config-path)
+          (insert-file-contents target-file)
           (goto-char (point-min))
-          ;; Regexp to find (defhydra hydra-name ...)
-          (while (re-search-forward "(defhydra \\([^ \t\n)]+\\)" nil t)
+          ;; Regexp to find (defhydra hydra-name ...) at the start of a line
+          (while (re-search-forward (concat "^[ \t]*(\\(?:def\\)" "hydra[ \t\n]+\\([a-zA-Z0-9/-]+\\)") nil t)
             (let* ((name (match-string 1))
                    (binding "No global binding found"))
-              ;; Search specifically for global-set-key or :bind associated with this name
               (save-excursion
                 (goto-char (point-min))
-                (when (re-search-forward (concat "[\"']" name "/body[\"']") nil t)
-                  (save-excursion
-                    (backward-char (length name))
-                    (when (re-search-backward "kbd \"\\([^\"]+\\)\"" nil t)
-                      (setq binding (match-string 1))))))
+                ;; Match :bind (("KEY" . hydra-.../body)), global-set-key, or keymap-global-set
+                (if (or (re-search-forward (format "\"\\([^\"]+\\)\"[ \t]*\\.[ \t]*%s/body" (regexp-quote name)) nil t)
+                        (re-search-forward (format "kbd[ \t]+\"\\([^\"]+\\)\"[ \t)]+.*%s/body" (regexp-quote name)) nil t)
+                        (re-search-forward (format "keymap-global-set[ \t]+\"\\([^\"]+\\)\"[ \t]+.*%s/body" (regexp-quote name)) nil t))
+                    (setq binding (match-string 1))))
               (push (cons name binding) hydra-list))))
-        
+
         ;; Display the results
         (if (null hydra-list)
-            (message "No Hydras found in config.el")
+            (message "No Hydras found in configuration")
           (with-output-to-temp-buffer "*My Hydras*"
-            (princ "Defined Hydras in config.el:\n")
-            (princ "============================\n\n")
+            (princ "Defined Hydras in Configuration:\n")
+            (princ "================================\n\n")
             (dolist (hydra (reverse hydra-list))
               (princ (format "%-25s Key: %s\n" (car hydra) (cdr hydra)))))))))
-#+END_SRC
+#+end_src
 
 * PDF-Tools
 High-performance PDF viewer and advanced management.
