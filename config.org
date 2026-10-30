@@ -2986,39 +2986,87 @@ Needed to handle citations in org-mode.
     :ensure t)
 #+end_src
 * Yasnippet
-** Core Configuration
-#+begin_src emacs-lisp :tangle yes
+
+A template expansion system for Emacs that dramatically accelerates coding, document authoring, and repetitive boilerplate entry. By typing a brief mnemonic abbreviation and pressing the expansion key, YASnippet replaces the keyword with a structured template containing tab stops, placeholder defaults, mirrored fields, and embedded Elisp transformations.
+
+** Core Configuration & Snippet Directories
+
+We configure YASnippet to look in our configuration's local ~snippets/~ directory (~user-emacs-directory/snippets~), which houses custom snippets for LaTeX and Org mode. In addition, we load the comprehensive community collection from ~yasnippet-snippets~.
+
+Key settings:
+- ~yas-wrap-around-region t~: When a region of text is active, expanding a snippet automatically encloses the highlighted text inside the snippet body (at ~$0~ or the first field) rather than deleting or overwriting it. This enables effortless wrapping of code blocks, HTML/XML tags, or LaTeX environments.
+- Selective Mode Hooks: Hooking ~yas-minor-mode~ to ~prog-mode~ and ~text-mode~ ensures snippets are available across all programming buffers, LaTeX, and Org notes while avoiding interference with special read-only or utility buffers (such as Dired, Magit, or Compilation).
+- Keybinding: ~C-c C-y~ in ~yas-minor-mode-map~ brings up the dedicated management Hydra.
+
+- *YASnippet Repository*: [[https://github.com/joaotavora/yasnippet][joaotavora/yasnippet on GitHub]]
+- *YASnippet MELPA*: [[https://melpa.org/packages/yasnippet.html][yasnippet on MELPA]]
+- *Official Documentation*: [[https://joaotavora.github.io/yasnippet/][YASnippet Manual]]
+- *Snippet Collection Repository*: [[https://github.com/AndreaCrotti/yasnippet-snippets][AndreaCrotti/yasnippet-snippets on GitHub]]
+- *Snippet Collection MELPA*: [[https://melpa.org/packages/yasnippet-snippets.html][yasnippet-snippets on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package yasnippet
     :after hydra
-    :config
-    ;; Enable snippets globally
-    ;; (yas-global-mode 1)
-    (yas-reload-all)
-    ;; Allow snippets to wrap around selected regions
-    (setq yas-wrap-around-region t)
+    :hook ((text-mode . yas-minor-mode)
+           (prog-mode . yas-minor-mode))
     :bind (:map yas-minor-mode-map
                 ("C-c C-y" . hydra-yas/body))
-    :hook
-    (text-mode . yas-minor-mode)
-    (prog-mode . yas-minor-mode))
+    :config
+    ;; Define explicit snippet directory paths
+    (setq yas-snippet-dirs
+          (list (expand-file-name "snippets" user-emacs-directory)))
+    ;; Allow snippets to wrap around selected active regions
+    (setq yas-wrap-around-region t)
+    ;; Load all snippet definitions
+    (yas-reload-all))
 
+  ;; Community-maintained collection of snippets for dozens of languages
   (use-package yasnippet-snippets
     :after yasnippet)
 #+end_src
 
+** Minibuffer Snippet Search (consult-yasnippet)
+
+~consult-yasnippet~ connects YASnippet to the modern Vertico and Consult completion stack. It provides an interactive, searchable minibuffer interface to quickly find and expand snippets for the active major mode, complete with real-time candidate live preview of the snippet body.
+
+- *Repository*: [[https://github.com/mohkale/consult-yasnippet][mohkale/consult-yasnippet on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/consult-yasnippet.html][consult-yasnippet on MELPA]]
+
+#+begin_src emacs-lisp
+  (use-package consult-yasnippet
+    :after (consult yasnippet)
+    :bind ("C-c y" . consult-yasnippet))
+#+end_src
+
 ** Yasnippet Hydra
-#+begin_src emacs-lisp :tangle yes
+
+A convenient transient menu for creating, editing, exploring, and reloading snippets. Operating with a red body color, it allows executing multiple snippet management actions sequentially before dismissing with ~q~.
+
+- *Insert / Search*:
+  - ~e~: ~yas-expand~ (expand abbreviation at point)
+  - ~i~: ~yas-insert-snippet~ (standard insertion prompt)
+  - ~s~: ~consult-yasnippet~ (Vertico/Consult interactive search with preview)
+- *Authoring & Inspection*:
+  - ~n~: ~yas-new-snippet~ (create a new snippet template)
+  - ~v~: ~yas-visit-snippet-file~ (open an existing snippet definition for editing)
+  - ~d~: ~yas-describe-tables~ (display all active snippet tables for current mode)
+- *Lifecycle*:
+  - ~R~: ~yas-reload-all~ (reload all snippet directories from disk)
+  - ~L~: ~yas-load-directory~ (load an external snippets folder)
+
+#+begin_src emacs-lisp
   (defhydra hydra-yas (:color red :hint nil)
     "
   Yasnippet Management
-  ^Insert^             ^Edit^                  ^Other^
-  ^^^^^^^^---------------------------------------------------------
-  _e_: Expand Snippet  _n_: New Snippet        _R_: Reload All
-  _i_: Insert Snippet  _v_: Visit Snippet File _L_: Load Directory
-  _d_: Describe Tables _q_: Quit
+  ^Insert / Search^       ^Edit & Inspect^        ^Lifecycle^
+  ^^^^^^^^------------------------------------------------------------------
+  _e_: Expand Snippet     _n_: New Snippet        _R_: Reload All
+  _i_: Insert Snippet     _v_: Visit Snippet File _L_: Load Directory
+  _s_: Consult Search     _d_: Describe Tables    _q_: Quit
   "
     ("e" yas-expand)
-    ("i" yas-insert-snippet) ; Fixed typo from 'snipper'
+    ("i" yas-insert-snippet)
+    ("s" consult-yasnippet)
     ("n" yas-new-snippet)
     ("v" yas-visit-snippet-file)
     ("d" yas-describe-tables)
