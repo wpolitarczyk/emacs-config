@@ -158,7 +158,7 @@ To prevent data loss without causing editor stutter on large files, we use ~asyn
 
 Additionally, an auto-save hook on ~focus-out-hook~ automatically saves modified buffers whenever the Emacs window loses OS focus (e.g., when switching to a browser or PDF reader).
 
-- *Repository*: [[https://github.com/antham/async-backup][antham/async-backup on GitHub]]
+- *Repository*: [[https://codeberg.org/contrapunctus/async-backup][contrapunctus/async-backup on Codeberg]]
 - *MELPA Page*: [[https://melpa.org/packages/async-backup.html][async-backup on MELPA]]
 
 #+begin_src emacs-lisp
@@ -280,7 +280,7 @@ Crucially, running the server is required for *SyncTeX backward-search* in PDF v
 
 ~indent-info~ displays the current indentation style (spaces vs. tabs and tab-width) directly in the modeline, making it easy to ensure coding standards are respected.
 
-- *Repository*: [[https://github.com/amno1/indent-info][amno1/indent-info on GitHub]]
+- *Repository*: [[https://github.com/terlar/indent-info.el][terlar/indent-info.el on GitHub]]
 - *MELPA Page*: [[https://melpa.org/packages/indent-info.html][indent-info on MELPA]]
 
 #+begin_src emacs-lisp
