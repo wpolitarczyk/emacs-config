@@ -255,13 +255,20 @@ Crucially, running the server is required for *SyncTeX backward-search* in PDF v
 
 ~which-key~ displays a visual popup panel listing all available completions whenever an incomplete key chord (such as ~C-c~, ~C-x~, or ~C-h~) is pressed. This dramatically reduces the cognitive load of remembering complex keymaps.
 
+Starting with *Emacs 30.1*, ~which-key~ is officially integrated directly into GNU Emacs core. On modern Emacs, it no longer needs to be fetched from MELPA; on older Emacs versions (< 30), it is automatically installed via ~use-package~.
+
 - *Repository*: [[https://github.com/justbur/emacs-which-key][justbur/emacs-which-key on GitHub]]
 - *MELPA Page*: [[https://melpa.org/packages/which-key.html][which-key on MELPA]]
 
 #+begin_src emacs-lisp
-  (use-package which-key
-    :config
-    (which-key-mode 1))
+  (if (>= emacs-major-version 30)
+      (use-package which-key
+        :ensure nil
+        :config
+        (which-key-mode 1))
+    (use-package which-key
+      :config
+      (which-key-mode 1)))
 #+end_src
 
 *** Configuration Debugging with bug-hunter
@@ -302,32 +309,34 @@ Replaces the jarring audible system bell or full-screen flashing with an elegant
     (mode-line-bell-mode 1))
 #+end_src
 
-*** Automatic Window Sizing with golden-ratio
+*** Automatic Window Sizing with zoom
 
-~golden-ratio~ automatically resizes the currently active window according to the golden ratio (approximately 1.618), expanding it so you have more room to read and edit while shrinking inactive windows.
+~zoom~ dynamically resizes the currently active window to give it optimal visual focus while shrinking inactive windows. Unlike the unmaintained legacy ~golden-ratio~ package, ~zoom~ handles modern window layouts, child frames, and popups cleanly without visual glitches or jitter.
 
-Certain interactive buffers (such as Ediff diffing, debugger panels, and Helm completion windows) require static sizing and are excluded from automatic resizing.
+Here, we configure ~zoom~ to scale the active window according to the golden ratio (~0.618~), while ignoring specific debugging, diffing, and REPL modes where automatic resizing would disrupt the interface.
 
-- *Repository*: [[https://github.com/roman/golden-ratio.el][roman/golden-ratio.el on GitHub]]
-- *MELPA Page*: [[https://melpa.org/packages/golden-ratio.html][golden-ratio on MELPA]]
+- *Repository*: [[https://github.com/cyrus-and/zoom][cyrus-and/zoom on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/zoom.html][zoom on MELPA]]
 
 #+begin_src emacs-lisp
-  (use-package golden-ratio
+  (use-package zoom
     :custom
-    (golden-ratio-exclude-modes '("ediff-mode"
-                                  "helm-mode"
-                                  "gud-mode"
-                                  "gdb-locals-mode"
-                                  "gdb-registers-mode"
-                                  "gdb-breakpoints-mode"
-                                  "gdb-threads-mode"
-                                  "gdb-frames-mode"
-                                  "gdb-inferior-io-mode"
-                                  "gdb-disassembly-mode"
-                                  "gdb-memory-mode"
-                                  "ielm-mode"))
+    ;; Scale active window according to the golden ratio
+    (zoom-size '(0.618 . 0.618))
+    (zoom-ignored-major-modes '(ediff-mode
+                                helm-mode
+                                gud-mode
+                                gdb-locals-mode
+                                gdb-registers-mode
+                                gdb-breakpoints-mode
+                                gdb-threads-mode
+                                gdb-frames-mode
+                                gdb-inferior-io-mode
+                                gdb-disassembly-mode
+                                gdb-memory-mode
+                                ielm-mode))
     :config
-    (golden-ratio-mode 1))
+    (zoom-mode 1))
 #+end_src
 
 *** Keystroke Screencasting with keycast
@@ -407,17 +416,18 @@ Emacs possesses a powerful undo system that never loses history, but navigating 
     (setq vundo-glyph-alist vundo-unicode-symbols))
 #+end_src
 
-*** Simplified Redo with undo-fu
+*** Native Linear Undo & Redo
 
-~undo-fu~ provides a clean, predictable, non-destructive wrapper around Emacs' internal undo system to provide intuitive linear undo and redo keybindings without relying on complex external packages like undo-tree.
+Emacs 28+ natively includes explicit ~undo-only~ and ~undo-redo~ commands, eliminating the need for external wrapper packages like ~undo-fu~.
 
-- *Repository*: [[https://codeberg.org/ideasman42/emacs-undo-fu][ideasman42/emacs-undo-fu on Codeberg]]
-- *MELPA Page*: [[https://melpa.org/packages/undo-fu.html][undo-fu on MELPA]]
+- ~undo-only~ (~C-/~): Strictly reverses previous edits in a linear fashion without reversing direction into redo.
+- ~undo-redo~ (~C-?~): Redoes changes that were just undone, matching the standard redo behavior found in modern editors.
+- When paired with ~vundo~ (~C-x u~), you get both simple linear undo/redo and the ability to visually branch into arbitrary points in history without any risk of corruption.
 
 #+begin_src emacs-lisp
-  (use-package undo-fu
-    :bind (("C-/" . undo-fu-only-undo)
-           ("C-?" . undo-fu-only-redo)))
+  ;; Native linear undo and redo (built into Emacs 28+)
+  (global-set-key (kbd "C-/") 'undo-only)
+  (global-set-key (kbd "C-?") 'undo-redo)
 #+end_src
 
 * Appearance
