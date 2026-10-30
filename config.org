@@ -2746,33 +2746,21 @@ A rapid-access transient menu bound to ~C-c f h~ for jumping across misspelled w
     (define-key flyspell-mode-map (kbd "C-c f h") #'hydra-flyspell/body))
 #+end_src
 
-* Email (mu4e)
-Email configuration (personal accounts, SMTP settings, signatures, and bookmarks) is stored in a private configuration file (~private.el~) to keep personal data outside of version control.
-See ~private.el.example~ for an example template.
-
-#+begin_src emacs-lisp :tangle yes
-  ;; Ensure private.el is loaded if present
-  (let ((private-file (expand-file-name "private.el" user-emacs-directory)))
-    (when (file-exists-p private-file)
-      (load private-file)))
-#+end_src
-
 * Writeroom
-Distraction-free writing environment.
-#+begin_src emacs-lisp :tangle yes
+
+A distraction-free writing environment for GNU Emacs inspired by WriteRoom for macOS. When enabled, ~writeroom-mode~ centers the text buffer, applies comfortable margins, disables line numbers, and hides extraneous UI elements to facilitate deep focus during prose composition and academic drafting.
+
+Key settings:
+- ~writeroom-fringes-outside-margins nil~: Places fringe indicators (such as ~git-gutter~ diff markers and Flycheck diagnostic glyphs) immediately adjacent to the centered text column rather than at the distant outer edges of the screen.
+- Keybinding: ~<f10>~ toggles ~writeroom-mode~ on and off instantly.
+
+- *Repository*: [[https://github.com/joostkremers/writeroom-mode][joostkremers/writeroom-mode on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/writeroom-mode.html][writeroom-mode on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package writeroom-mode
     :bind ("<f10>" . writeroom-mode)
     :config
-    ;; Keep fringes (like git-gutter) inside the centered margins
+    ;; Keep fringes (like git-gutter indicators) adjacent to centered text
     (setq writeroom-fringes-outside-margins nil))
 #+end_src
-* Arxiv-mode
-#+BEGIN_SRC emacs-lisp :tangle yes
-  (use-package arxiv-mode
-    :ensure t)
-#+END_SRC
-* Academic phrases
-#+BEGIN_SRC emacs-lisp :tangle yes 
-  (use-package academic-phrases
-    :ensure t)
-#+END_SRC
