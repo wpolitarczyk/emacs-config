@@ -1295,6 +1295,63 @@ To avoid timestamp discrepancies and calculation issues on cloud-synced storage 
     (setq consult-preview-key 'any))
 #+end_src
 
+** Embark (Contextual Actions at Point & Minibuffer)
+
+~embark~ acts as a keyboard-driven right-click context menu for Emacs. When your cursor is on any target in a buffer (a file path, symbol, URL, or LaTeX reference) or when browsing candidates in the Vertico minibuffer:
+- ~C-.~ (~embark-act~): Presents an interactive menu of sensible actions for that specific target (open in other window, copy kill-ring, diff, delete, find references) without needing to recall specialized keybindings.
+- ~M-.~ (~embark-dwim~): Executes the "Do What I Mean" default contextual action for the target.
+- ~C-h B~ (~embark-bindings~): Displays a structured overview of all keybindings active in the current buffer.
+
+- *Repository*: [[https://github.com/oantolin/embark][oantolin/embark on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/embark.html][embark on MELPA]]
+
+#+begin_src emacs-lisp
+  (use-package embark
+    :bind (("C-."   . embark-act)         ; Pick an action for symbol/file/candidate at point
+           ("M-."   . embark-dwim)        ; Context-aware default action
+           ("C-h B" . embark-bindings))   ; Discover and display active keybindings
+    :init
+    ;; Optionally replace standard completion help with Embark
+    (setq prefix-help-command #'embark-prefix-help-command)
+    :config
+    ;; Hide the mode line of the Embark live/completions buffers for a clean popup
+    (add-to-list 'display-buffer-alist
+                 '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                   nil
+                   (window-parameters (mode-line-format . nil)))))
+#+end_src
+
+** Embark-Consult & Wgrep (Project-Wide Search & Replace)
+
+The combination of ~consult~, ~embark-consult~, and ~wgrep~ provides a project-wide search-and-replace workflow that surpasses traditional IDE tools:
+
+1. Run ~consult-ripgrep~ (~C-c r~) or a Projectile search to find an identifier across your repository.
+2. While browsing the search results in Vertico, press ~C-. E~ (~embark-export~) to snapshot all matches into a persistent, standard ~grep-mode~ buffer.
+3. In the grep buffer, press ~C-c C-p~ or ~C-x C-q~ to activate ~wgrep-mode~ (Writable Grep).
+4. Edit the matching lines directly across dozens of files simultaneously using query-replace, multiple cursors, or keyboard macros.
+5. Press ~C-c C-c~ to commit and write the edits across all modified files on disk, or ~C-c C-k~ to discard.
+
+- *Embark-Consult Repository*: [[https://github.com/oantolin/embark][oantolin/embark on GitHub]]
+- *Embark-Consult MELPA*: [[https://melpa.org/packages/embark-consult.html][embark-consult on MELPA]]
+- *Wgrep Repository*: [[https://github.com/mhayashi1120/Emacs-wgrep][mhayashi1120/Emacs-wgrep on GitHub]]
+- *Wgrep MELPA*: [[https://melpa.org/packages/wgrep.html][wgrep on MELPA]]
+
+#+begin_src emacs-lisp
+  (use-package embark-consult
+    :after (embark consult)
+    :hook
+    (embark-collect-mode . consult-preview-at-point-mode))
+
+  (use-package wgrep
+    :commands wgrep-change-to-wgrep-mode
+    :bind (:map grep-mode-map
+                ("C-c C-p" . wgrep-change-to-wgrep-mode)
+                ("C-x C-q" . wgrep-change-to-wgrep-mode))
+    :config
+    ;; Automatically save modified file buffers when finishing edits (C-c C-c)
+    (setq wgrep-auto-save-buffer t))
+#+end_src
+
 * Projectile
 :PROPERTIES:
 :header-args: :tangle yes
