@@ -921,40 +921,72 @@ Bound to ~C-c s~ inside ~pdf-view-mode-map~.
         (message "Current buffer is not visiting a PDF file."))))
 #+end_src
 * Dired
+:PROPERTIES:
+:header-args: :tangle yes
+:END:
+
+Dired (Directory Editor) is Emacs' built-in file manager. Rather than acting as a static file browser, it renders filesystem directories as interactive Emacs buffers where you can navigate, flag files for deletion (~d~), rename files interactively with standard cursor movements (~R~), copy (~C~), compress (~Z~), and edit filenames using multi-file search and replace (~wdired-change-to-wdired-mode~ via ~C-x C-q~).
+
+This section configures clean navigation ergonomics, macOS BSD compatibility fixes, inline subdirectory tree expansions, custom diffing, external PDF viewing, and visual grouping.
+
+- *Manual*: [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Dired.html][GNU Emacs Dired Manual]]
+
 ** Core Configuration
-#+begin_src emacs-lisp :tangle yes
+
+Essential defaults to streamline file operations and prevent buffer sprawl:
+
+- ~dired-recursive-copies 'always~ & ~dired-recursive-deletes 'always~: Copies and deletes nested directory hierarchies without prompting for confirmation on each file.
+- ~dired-dwim-target t~: "Do What I Mean" target detection. When two Dired windows are open side-by-side, pressing ~C~ (copy) or ~R~ (rename/move) automatically guesses the other visible Dired folder as the destination.
+- ~dired-kill-when-opening-new-dired-buffer t~: Added in Emacs 28+. Reuses the current buffer when descending into subdirectories instead of spawning a new buffer for every folder visited.
+- ~dired-listing-switches "-agho --group-directories-first"~: Formats listings with hidden files, human-readable sizes, and groups subdirectories at the top.
+- ~auto-revert-mode~ hook: Keeps Dired buffers in sync with external filesystem modifications.
+
+*** macOS BSD Compatibility (ls-lisp)
+
+On macOS, the native BSD system ~/bin/ls~ utility does not support the GNU ~--group-directories-first~ flag, causing Dired to fail on startup. 
+
+By setting ~ls-lisp-use-insert-directory-program nil~ and loading ~ls-lisp~, Emacs uses its built-in pure Lisp file listing engine. This guarantees full cross-platform compatibility without requiring external Homebrew coreutils (~gls~).
+
+#+begin_src emacs-lisp
   (use-package dired
-    :ensure nil
+    :ensure nil ; Built into Emacs
     :custom
     (dired-recursive-copies 'always)
     (dired-recursive-deletes 'always)
     (dired-listing-switches "-agho --group-directories-first")
     (dired-dwim-target t)
+    ;; Reuse the current buffer when navigating into subdirectories (Emacs 28+)
+    (dired-kill-when-opening-new-dired-buffer t)
     :hook
     (dired-mode . auto-revert-mode)
     :bind (:map dired-mode-map
            ("e" . my/ediff-files-in-dired)
            ("V" . my/dired-open-pdf-in-preview))
     :config
-    ;; Fix for macOS: use Lisp instead of system ls to avoid path errors
+    ;; Fix for macOS: use Emacs' internal Lisp implementation of ls
+    ;; to support --group-directories-first without external GNU coreutils
     (setq ls-lisp-use-insert-directory-program nil)
-    (require 'ls-lisp)
-    
-    ;; Shortcut for Google Drive (example)
-    ;;(setq directory-abbrev-alist
-    ;;      `((,(regexp-quote (expand-file-name "~/user@example.com - Google Drive/My Drive")) . "~/GDrive")))
-    )
+    (require 'ls-lisp))
+#+end_src
 
+** macOS External Viewer & Ediff File Comparison
+
+Custom helper functions tailored for macOS workflows and visual diffing directly from Dired:
+
+- ~my/dired-open-pdf-in-preview~ (bound to ~V~): Launches macOS' native Preview application for the selected PDF.
+- ~my/ediff-files-in-dired~ (bound to ~e~): Launches interactive Ediff comparison for marked files in Dired. If only one file is marked, prompts for a second file using the opposite DWIM target pane as default. Automatically orders files chronologically (older in A, newer in B) and restores the previous window layout when Ediff closes.
+
+#+begin_src emacs-lisp
   ;; --- Custom macOS PDF Viewer ---
   (defun my/open-pdf-in-preview (file)
-    "Opens the given FILE in the macOS Preview application."
+    "Open FILE in the native macOS Preview application."
     (interactive "fSelect PDF to open: ")
     (if (file-exists-p file)
         (start-process "preview-pdf" nil "open" "-a" "Preview" (expand-file-name file))
       (message "File %s does not exist!" file)))
 
   (defun my/dired-open-pdf-in-preview ()
-    "Grabs the file path under the cursor in Dired and opens it in Preview."
+    "Grab the file path under point in Dired and open it in macOS Preview."
     (interactive)
     (let ((file (dired-get-filename)))
       (if (string-match-p "\\.[pP][dD][fF]\\'" file)
@@ -963,7 +995,7 @@ Bound to ~C-c s~ inside ~pdf-view-mode-map~.
 
   ;; --- Compare files with Ediff ---
   (defun my/ediff-files-in-dired ()
-    "Easily compare two marked files in Dired using Ediff."
+    "Compare two marked files in Dired using Ediff."
     (interactive)
     (let ((files (dired-get-marked-files))
           (wnd (current-window-configuration)))
@@ -982,45 +1014,78 @@ Bound to ~C-c s~ inside ~pdf-view-mode-map~.
         (error "No more than two files should be marked"))))
 #+end_src
 
-** Dired Extensions (Dired Hacks)
-Documentation: [[https://github.com/Fuco1/dired-hacks][Dired hacks]]
-#+begin_src emacs-lisp :tangle yes
-  ;; Basic extensions
+** Dired Extensions (dired-hacks)
+
+Extensions from the popular **[[https://github.com/Fuco1/dired-hacks][dired-hacks]]** collection by Matúš Goljer, significantly elevating Dired's daily productivity:
+
+- **dired-open**: Associate external operating system applications with specific file types.
+  - *Repository*: [[https://github.com/Fuco1/dired-hacks#dired-open][dired-open on GitHub]] | *MELPA*: [[https://melpa.org/packages/dired-open.html][dired-open on MELPA]]
+- **dired-rainbow**: Adds rich syntax color highlighting to files based on their file extensions.
+  - *Repository*: [[https://github.com/Fuco1/dired-hacks#dired-rainbow][dired-rainbow on GitHub]] | *MELPA*: [[https://melpa.org/packages/dired-rainbow.html][dired-rainbow on MELPA]]
+- **dired-subtree**: Expand and collapse directory subtrees inline without leaving the current buffer (bound to ~TAB~ to toggle and ~<backtab>~ to cycle).
+  - *Repository*: [[https://github.com/Fuco1/dired-hacks#dired-subtree][dired-subtree on GitHub]] | *MELPA*: [[https://melpa.org/packages/dired-subtree.html][dired-subtree on MELPA]]
+- **dired-ranger**: Multi-stage copy, cut, and paste ring inspired by the terminal Ranger file manager.
+  - *Repository*: [[https://github.com/Fuco1/dired-hacks#dired-ranger][dired-ranger on GitHub]] | *MELPA*: [[https://melpa.org/packages/dired-ranger.html][dired-ranger on MELPA]]
+- **dired-collapse**: Collapses chains of single nested directories into a compact single-line path (like GitHub's web UI).
+  - *Repository*: [[https://github.com/Fuco1/dired-hacks#dired-collapse][dired-collapse on GitHub]] | *MELPA*: [[https://melpa.org/packages/dired-collapse.html][dired-collapse on MELPA]]
+- **dired-narrow**: Real-time interactive filtering of directory contents by typing, bound to ~[~.
+  - *Repository*: [[https://github.com/Fuco1/dired-hacks#dired-narrow][dired-narrow on GitHub]] | *MELPA*: [[https://melpa.org/packages/dired-narrow.html][dired-narrow on MELPA]]
+- **dired-hide-dotfiles**: Toggles hidden Unix dotfiles on and off via ~.~.
+  - *Repository*: [[https://github.com/mattiasb/dired-hide-dotfiles][dired-hide-dotfiles on GitHub]] | *MELPA*: [[https://melpa.org/packages/dired-hide-dotfiles.html][dired-hide-dotfiles on MELPA]]
+- **diffpdf**: Transient menu interface to visually diff two PDF files using the external ~diff-pdf~ CLI tool.
+  - *Repository*: [[https://github.com/ShuguangSun/diffpdf.el][diffpdf on GitHub]] | *MELPA*: [[https://melpa.org/packages/diffpdf.html][diffpdf on MELPA]]
+- **dired-git-info**: Overlays Git commit messages and timestamps directly over file rows in Dired, toggled with ~)~.
+  - *Repository*: [[https://github.com/crocket/dired-git-info][dired-git-info on GitHub]] | *MELPA*: [[https://melpa.org/packages/dired-git-info.html][dired-git-info on MELPA]]
+
+#+begin_src emacs-lisp
+  ;; Visual and operational extensions from dired-hacks
   (use-package dired-open)
   (use-package dired-rainbow)
-  (use-package dired-subtree)
   (use-package dired-ranger)
   (use-package dired-collapse)
 
-  ;; Dynamic narrowing/filtering (Search by typing)
+  ;; Inline directory tree expansion (expand with TAB, cycle with Shift-TAB)
+  (use-package dired-subtree
+    :after dired
+    :bind (:map dired-mode-map
+           ("TAB"       . dired-subtree-toggle)
+           ("<backtab>" . dired-subtree-cycle)))
+
+  ;; Dynamic interactive filtering by typing
   (use-package dired-narrow
     :bind (:map dired-mode-map
            ("[" . dired-narrow)))
 
-  ;; Hide dotfiles (toggle with '.')
+  ;; Toggle visibility of dotfiles with '.'
   (use-package dired-hide-dotfiles
     :hook (dired-mode . dired-hide-dotfiles-mode)
     :bind (:map dired-mode-map
            ("." . dired-hide-dotfiles-mode)))
 
-  ;; Diff-pdf extension for Dired
+  ;; Visual PDF diffing with diff-pdf
   (use-package diffpdf)
-#+end_src
 
-#+begin_src emacs-lisp :tangle yes
+  ;; Display latest Git commit info alongside files (toggle with ')')
   (use-package dired-git-info
     :bind (:map dired-mode-map
-                (")" . dired-git-info-mode)))
+           (")" . dired-git-info-mode)))
 #+end_src
 
-** Dired Filters and Grouping
-#+begin_src emacs-lisp :tangle yes
+** Dired Filters and Grouping (dired-filter)
+
+~dired-filter~ categorizes and partitions files in Dired buffers into distinct, labeled sections (Directories, PDFs, LaTeX documents, Org files, Code, and Archives).
+
+*Implementation Note:* Group rules use explicit file extensions (e.g., ~(extension "tex" "bib")~) rather than major modes (e.g., ~(mode . 'latex-mode')~) to prevent ~void-variable~ runtime errors when specialized language modes have not yet been evaluated.
+
+- *Repository*: [[https://github.com/Fuco1/dired-hacks#dired-filter][dired-filter on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/dired-filter.html][dired-filter on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package dired-filter
     :hook
     (dired-mode . dired-filter-mode)
     (dired-filter-mode . dired-filter-group-mode)
     :custom
-    ;; Używamy rozszerzeń zamiast trybów (mode), aby uniknąć błędów "void-variable"
     (dired-filter-group-saved-groups
      '(("default"
         ("Dirs"          (directory))
