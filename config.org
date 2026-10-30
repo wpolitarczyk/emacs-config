@@ -3075,26 +3075,96 @@ A convenient transient menu for creating, editing, exploring, and reloading snip
     ("q" nil "Quit" :color blue))
 #+end_src
 * Flycheck
-** Core Configuration
-#+begin_src emacs-lisp :tangle yes
+
+An on-the-fly syntax checking and linting framework for GNU Emacs. Flycheck continuously analyzes source code in the background using external linters, static analysis tools, and compilers (such as ShellCheck, ChkTeX, Ruff, Flake8, and GCC/Clang), highlighting errors and warnings directly in the buffer fringe and text. It also seamlessly receives diagnostics from active Language Server Protocol (~lsp-mode~) sessions.
+
+** Core Configuration & Performance Tuning
+
+We enable ~global-flycheck-mode~ to ensure syntax verification is automatically available across all supported programming and markup modes.
+
+Key settings:
+- ~flycheck-display-errors-delay 0.5~: Sets a half-second grace period before displaying error descriptions at point, preventing intrusive flickering and cursor latency during fast typing on macOS.
+- Standard Keybindings (~C-c !~ prefix):
+  - ~C-c ! n~ / ~C-c ! p~: Navigate to the next or previous syntax diagnostic.
+  - ~C-c ! l~: Open the comprehensive error list buffer.
+  - ~C-c ! c~: Force immediate syntax check of the current buffer.
+  - ~C-c ! e~: Explain the error under point in detail.
+  - ~C-c ! v~: Verify checker setup and display installed linters.
+
+- *Repository*: [[https://github.com/flycheck/flycheck][flycheck/flycheck on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/flycheck.html][flycheck on MELPA]]
+- *Official Documentation*: [[https://www.flycheck.org/][flycheck.org]]
+
+#+begin_src emacs-lisp
   (use-package flycheck
     :init
     ;; Enable flycheck globally for all supported programming modes
     (global-flycheck-mode 1)
     :config
-    ;; Adjust display delay for better performance on macOS
+    ;; Adjust display delay for smooth typing performance on macOS
     (setq flycheck-display-errors-delay 0.5))
 #+end_src
 
-** Flycheck Popup Tips
-This displays error messages in a floating tooltip near the cursor.
-#+begin_src emacs-lisp :tangle yes
+** Minibuffer Diagnostic Search (consult-flycheck)
+
+~consult-flycheck~ connects Flycheck to the Vertico and Consult completion framework. It provides interactive, fuzzy-searchable diagnostic navigation with live candidate preview across the current buffer or entire project workspace.
+
+- *Repository*: [[https://github.com/minad/consult-flycheck][minad/consult-flycheck on GitHub]]
+- *NonGNU ELPA Page*: [[https://elpa.nongnu.org/nongnu/consult-flycheck.html][consult-flycheck on NonGNU ELPA]]
+
+#+begin_src emacs-lisp
+  (use-package consult-flycheck
+    :after (consult flycheck)
+    :bind (("M-g f" . consult-flycheck)
+           :map flycheck-command-map
+           ("c" . consult-flycheck)))
+#+end_src
+
+** Floating Error Tooltips (flycheck-popup-tip)
+
+~flycheck-popup-tip~ renders diagnostic descriptions in a floating tooltip near point using ~popup.el~, avoiding buffer reflow and terminal layout disruptions. Configured with a clean Unicode marker (~✕ ~) to prefix error messages.
+
+- *Repository*: [[https://github.com/flycheck/flycheck-popup-tip][flycheck/flycheck-popup-tip on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/flycheck-popup-tip.html][flycheck-popup-tip on MELPA]]
+
+#+begin_src emacs-lisp
   (use-package flycheck-popup-tip
     :after flycheck
     :hook (flycheck-mode . flycheck-popup-tip-mode)
     :config
-    ;; Ensure popups don't interfere with the cursor too aggressively
+    ;; Clean unicode prefix for error tooltips
     (setq flycheck-popup-tip-error-prefix "✕ "))
+#+end_src
+
+** Flycheck Navigation Hydra
+
+A transient menu bound to ~C-c ! h~ that facilitates rapid diagnostic navigation, inspection, and error resolution without typing repetitive key chords.
+
+#+begin_src emacs-lisp
+  (defhydra hydra-flycheck (:color red :hint nil)
+    "
+  Flycheck Errors
+  ^Navigation^          ^Inspect / Fix^          ^Display & Search^
+  ^^^^^^^^------------------------------------------------------------------
+  _n_: Next Error       _e_: Explain at Point    _l_: List Errors Buffer
+  _p_: Previous Error   _s_: Select Checker      _c_: Consult Search
+  _<_: First Error      _v_: Verify Linters      _q_: Quit
+  _>_: Last Error
+  "
+    ("n" flycheck-next-error)
+    ("p" flycheck-previous-error)
+    ("<" flycheck-first-error)
+    (">" (progn (goto-char (point-max)) (flycheck-previous-error 1)))
+    ("e" flycheck-explain-error-at-point)
+    ("s" flycheck-select-checker)
+    ("v" flycheck-verify-setup)
+    ("l" flycheck-list-errors)
+    ("c" consult-flycheck)
+    ("q" nil "Quit" :color blue))
+
+  ;; Bind Hydra to C-c ! h in Flycheck command map
+  (with-eval-after-load 'flycheck
+    (define-key flycheck-command-map (kbd "h") #'hydra-flycheck/body))
 #+end_src
 * Flyspell
 ** Core Configuration
