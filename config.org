@@ -862,28 +862,63 @@ Also accessible from the quick-navigator buttons on the startup Dashboard.
 #+end_src
 
 * PDF-Tools
-High-performance PDF viewer and advanced management.
-#+begin_src emacs-lisp :tangle yes
+:PROPERTIES:
+:header-args: :tangle yes
+:END:
+
+By default, Emacs views PDF documents using ~doc-view-mode~, which relies on external utilities (ImageMagick or Ghostscript) to convert pages into rasterized PNG images. This approach is slow, blurry on high-DPI (Retina) displays, and lacks native text selection or fine-grained navigation.
+
+~pdf-tools~ completely replaces ~doc-view-mode~ with an in-buffer vector renderer driven by Poppler via a native server binary (~epdfinfo~). It provides:
+- Crisp vector rendering at any zoom level with sub-pixel antialiasing.
+- Native text selection, search, copying, and in-buffer highlighting/annotations.
+- Direct bidirectional SyncTeX integration with LaTeX (clicking a location in the PDF jumps directly to the source code line in AUCTeX, and vice versa).
+- Fast in-document text search.
+
+- *Repository*: [[https://github.com/vedang/pdf-tools][vedang/pdf-tools on GitHub]]
+- *MELPA Page*: [[https://melpa.org/packages/pdf-tools.html][pdf-tools on MELPA]]
+- *Prerequisites*: Requires Poppler installed on your system. On macOS with Homebrew: ~brew install poppler automake autoconf pkg-config~.
+
+** Viewer Setup & Configuration
+
+- ~:mode~ & ~:magic~: Automatically activates ~pdf-view-mode~ for files ending in ~.pdf~ or starting with the standard ~%PDF~ magic byte header. Using ~:mode~ defers package loading until a PDF is actually visited.
+- ~(pdf-tools-install :no-query)~: Compiles/initializes the native ~epdfinfo~ server without interactive prompts.
+- ~pdf-view-display-size 'fit-page~: Default to fitting the entire page vertically in the window.
+- ~C-s~ bound to ~isearch-forward~: Ensures standard Emacs incremental search triggers the PDF text search engine even when global completion frameworks (like Helm or Swiper) are active.
+- ~auto-revert-mode~ hook: Automatically reloads the PDF buffer whenever the file is updated on disk (essential when compiling documents with ~latexmk~ or AUCTeX).
+
+#+begin_src emacs-lisp
   (use-package pdf-tools
-    :ensure t
     :mode ("\\.pdf\\'" . pdf-view-mode)
     :magic ("%PDF" . pdf-view-mode)
+    :bind (:map pdf-view-mode-map
+           ("C-s"   . isearch-forward)
+           ("C-c s" . my/pdf-check-signatures))
+    :custom
+    (pdf-view-display-size 'fit-page)
+    :hook
+    ;; Automatically refresh the PDF buffer when recompiled by LaTeX / external tools
+    (pdf-view-mode . auto-revert-mode)
     :config
-    ;; Initialize the package seamlessly without prompting
-    (pdf-tools-install :no-query)
-    
-    ;; Appearance and Search
-    (setq-default pdf-view-display-size 'fit-page)
-    (define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward)
+    ;; Initialize the epdfinfo server seamlessly without interactive prompting
+    (pdf-tools-install :no-query))
+#+end_src
 
-    ;; Custom function to check digital signatures
-    (defun my/pdf-check-signatures ()
-      "Check PDF signatures using the poppler pdfsig tool."
-      (interactive)
-      (let ((file (buffer-file-name)))
-        (if (and file (string-match-p "\\.pdf\\'" file))
-            (compile (format "pdfsig %s" (shell-quote-argument file)))
-          (message "Not a PDF buffer.")))))
+** Digital Signature Verification (pdfsig)
+
+Digital signatures in PDF files (such as qualified electronic signatures or PAdES certificates) require specialized inspection tools. This utility function leverages Poppler's ~pdfsig~ CLI to verify digital signatures and output validation results directly inside an interactive Emacs compilation buffer.
+
+Bound to ~C-c s~ inside ~pdf-view-mode-map~.
+
+- *Utility*: Part of Poppler tools (~poppler-utils~ / Homebrew ~poppler~).
+
+#+begin_src emacs-lisp
+  (defun my/pdf-check-signatures ()
+    "Check cryptographic PDF signatures using the poppler pdfsig tool."
+    (interactive)
+    (let ((file (buffer-file-name)))
+      (if (and file (string-match-p "\\.[pP][dD][fF]\\'" file))
+          (compile (format "pdfsig %s" (shell-quote-argument file)))
+        (message "Current buffer is not visiting a PDF file."))))
 #+end_src
 * Dired
 ** Core Configuration
